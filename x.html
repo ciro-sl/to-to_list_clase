@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>to-do list</title>
+    <script src="js/script.js"></script>
+    <link rel="stylesheet" href="css/diseño.css">
+</head>
+<body>
+    <!-- Barra lateral única con listas y formulario de tareas -->
+    <aside class="sidebar">
+        <h2>Mis Listas</h2>
+        
+        <!-- Formulario para nueva lista -->
+        <div class="formulario-lista">
+            <input type="text" id="nueva-lista" placeholder="Nueva lista">
+            <input type="color" id="color-lista" value="#3498db" title="Color">
+            <button onclick="crearLista()" class="boton-agregar-lista">+</button>
+        </div>
+        
+        <!-- Contenedor de listas -->
+        <div id="contenedor-listas" class="contenedor-listas">
+            <!-- Las listas se cargarán aquí -->
+        </div>
+        
+        <hr class="separador">
+        
+        <h2>Nueva Tarea</h2>
+        <div class="formulario-tarea">
+            <input type="text" id="nueva-tarea" placeholder="Título de la tarea">
+            <textarea id="descripcion-tarea" placeholder="Descripción"></textarea>
+            <button onclick="agregarTarea()">Agregar</button>
+        </div>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="contenido-principal">
+        <h1 id="titulo-lista-actual">Lista de Tareas</h1>
+        <ul id="listatareas"></ul>
+    </main>
+</body>
+</html>
