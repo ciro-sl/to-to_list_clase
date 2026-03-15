@@ -30,10 +30,16 @@ const db = new sqlite3.Database('./tareas.db', (err) => {
       title TEXT NOT NULL,
       description TEXT,
       completed INTEGER DEFAULT 0,
+      priority TEXT DEFAULT 'low',
       list_id INTEGER DEFAULT 1,
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (list_id) REFERENCES lists(id)
     )`);
+    
+    // Agregar columna priority si no existe (manejando error si ya existe)
+    db.run(`ALTER TABLE tasks ADD COLUMN priority TEXT DEFAULT 'low'`, (err) => {
+      // Ignorar error si la columna ya existe
+    });
     
     // Insertar lista por defecto si no existe
     db.get('SELECT COUNT(*) as count FROM lists', (err, row) => {
@@ -165,20 +171,20 @@ app.get('/api/tasks', (req, res) => {
 
 // POST /api/tasks - Crear una nueva tarea
 app.post('/api/tasks', (req, res) => {
-  const { title, description, completed = false, list_id = 1 } = req.body;
+  const { title, description, completed = false, priority = 'low', list_id = 1 } = req.body;
   
   if (!title || title.trim() === '') {
     res.status(400).json({ error: 'El título de la tarea es requerido' });
     return;
   }
   
-  const stmt = db.prepare('INSERT INTO tasks (title, description, completed, list_id) VALUES (?, ?, ?, ?)');
-  stmt.run(title.trim(), description || '', completed ? 1 : 0, list_id, function(err) {
+  const stmt = db.prepare('INSERT INTO tasks (title, description, completed, priority, list_id) VALUES (?, ?, ?, ?, ?)');
+  stmt.run(title.trim(), description || '', completed ? 1 : 0, priority, list_id, function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    res.json({ id: this.lastID, title: title.trim(), description, completed, list_id });
+    res.json({ id: this.lastID, title: title.trim(), description, completed, priority, list_id });
   });
   stmt.finalize();
 });
@@ -217,11 +223,11 @@ app.put('/api/tasks/:id/complete', (req, res) => {
 
 // PUT /api/tasks/:id - Editar una tarea
 app.put('/api/tasks/:id', (req, res) => {
-  const { title, description, completed, list_id } = req.body;
+  const { title, description, completed, priority, list_id } = req.body;
   const completedValue = completed ? 1 : 0;
   
-  db.run('UPDATE tasks SET title = ?, description = ?, completed = ?, list_id = ? WHERE id = ?', 
-    [title, description, completedValue, list_id || 1, req.params.id], function(err) {
+  db.run('UPDATE tasks SET title = ?, description = ?, completed = ?, priority = ?, list_id = ? WHERE id = ?', 
+    [title, description, completedValue, priority || 'low', list_id || 1, req.params.id], function(err) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
