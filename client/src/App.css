@@ -354,7 +354,7 @@ body {
     /* ... resto del código ... */
     padding: 14px 16px;
     border-radius: 10px;
-    border: 2px solid ##15304b;              /* Borde claro para los inputs */
+    border: 2px solid #15304b;            /* Borde claro para los inputs */
     font-size: 14px;
     color: white;                            /* Texto blanco para los inputs */
     font-family: inherit;
