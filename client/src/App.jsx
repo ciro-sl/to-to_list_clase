@@ -124,6 +124,15 @@ function App() {
       alert('Por favor ingrese un nombre para la lista')
       return false
     }
+    if (newListName.length > 20) {
+      alert('El nombre de la lista no puede exceder 20 caracteres')
+      return false
+    }
+    const caracteresEspeciales = /[*+\-\.´¿!@#$%^&(){}[\]\\|<>?/~`]/
+    if (caracteresEspeciales.test(newListName)) {
+      alert('El nombre no puede contener caracteres especiales como *+-´¿!@#$%^&()')
+      return false
+    }
     return true
   }
 
@@ -132,12 +141,46 @@ function App() {
       alert('Por favor ingrese un título para la tarea')
       return false
     }
+    if (newTaskTitle.length > 50) {
+      alert('El título no puede exceder 50 caracteres')
+      return false
+    }
+    if (newTaskDesc.length > 200) {
+      alert('La descripción no puede exceder 200 caracteres')
+      return false
+    }
+    const caracteresEspeciales = /[*+\-\.´¿!@#$%^&(){}[\]\\|<>?/~`]/
+    if (caracteresEspeciales.test(newTaskTitle)) {
+      alert('El título no puede contener caracteres especiales como *+-´¿!@#$%^&()')
+      return false
+    }
+    if (caracteresEspeciales.test(newTaskDesc)) {
+      alert('La descripción no puede contener caracteres especiales como *+-´¿!@#$%^&()')
+      return false
+    }
     return true
   }
 
   const validarEditarTarea = () => {
     if (!editTitle.trim()) {
       alert('El título no puede estar vacío')
+      return false
+    }
+    if (editTitle.length > 50) {
+      alert('El título no puede exceder 50 caracteres')
+      return false
+    }
+    if (editDesc.length > 200) {
+      alert('La descripción no puede exceder 200 caracteres')
+      return false
+    }
+    const caracteresEspeciales = /[*+\-\.´¿!@#$%^&(){}[\]\\|<>?/~`]/
+    if (caracteresEspeciales.test(editTitle)) {
+      alert('El título no puede contener caracteres especiales como *+-´¿!@#$%^&()')
+      return false
+    }
+    if (caracteresEspeciales.test(editDesc)) {
+      alert('La descripción no puede contener caracteres especiales como *+-´¿!@#$%^&()')
       return false
     }
     return true
@@ -320,6 +363,7 @@ function App() {
             value={newListName}
             onChange={(e) => setNewListName(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && crearLista()}
+            maxLength={20}
           />
           <input 
             type="color" 
@@ -423,10 +467,12 @@ function App() {
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
                       autoFocus
+                      maxLength={50}
                     />
                     <textarea
                       value={editDesc}
                       onChange={(e) => setEditDesc(e.target.value)}
+                      maxLength={200}
                     />
                     <select
                       value={editPriority}
@@ -475,13 +521,13 @@ function App() {
                         className="boton-editar"
                         onClick={() => iniciarEditar(task)}
                       >
-                        ✏️
+                        ✏️ edit
                       </button>
                       <button 
                         className="boton-eliminar"
                         onClick={() => eliminarTarea(task.id)}
                       >
-                        🗑️
+                        🗑️ eliminar
                       </button>
                     </div>
                   </>
@@ -511,11 +557,13 @@ function App() {
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && agregarTarea()}
                 autoFocus
+                maxLength={50}
               />
               <textarea 
                 placeholder="Descripción (opcional)"
                 value={newTaskDesc}
                 onChange={(e) => setNewTaskDesc(e.target.value)}
+                maxLength={200}
               />
               <select
                 value={newTaskPriority}
