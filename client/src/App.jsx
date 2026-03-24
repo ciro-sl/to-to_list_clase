@@ -57,6 +57,15 @@ function App() {
   const [editDesc, setEditDesc] = useState('')
   const [editPriority, setEditPriority] = useState('baja')
   const [filter, setFilter] = useState('todas')
+  const [notification, setNotification] = useState(null)
+  const [deleteModalTask, setDeleteModalTask] = useState(null)
+  const [deleteListModal, setDeleteListModal] = useState(null)
+
+  // Mostrar notificación
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 3000)
+  }
 
   // Obtener todas las listas
   const fetchLists = async () => {
@@ -117,19 +126,38 @@ function App() {
     return tasks
   }, [tasks, filter])
 
-  // ================= VALIDACIONES =================
+  // ================= VALIDACIONES CON ESTILOS =================
 
   const validarCrearLista = () => {
     if (!newListName.trim()) {
-      alert('Por favor ingrese un nombre para la lista')
+      showNotification('⚠️ Por favor ingrese un nombre para la lista', 'error')
       return false
     }
+    if (newListName.length > 20) {
+      showNotification('⚠️ El nombre de la lista no puede exceder los 20 caracteres', 'error')
+      return false
+    }
+    showNotification('✅ Lista creada exitosamente', 'success')
     return true
   }
 
   const validarCrearTarea = () => {
     if (!newTaskTitle.trim()) {
-      alert('Por favor ingrese un título para la tarea')
+      showNotification('⚠️ Por favor ingrese un título para la tarea', 'error')
+      return false
+    }
+    if (newTaskTitle.length > 50) {
+      showNotification('⚠️ El título no puede exceder los 50 caracteres', 'error')
+      return false
+    }
+    if (newTaskDesc.length > 100) {
+      showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
+      return false
+    }
+    // Validar que solo contenga letras y espacios (sin números ni caracteres especiales)
+    const regexSoloLetrasYEspacios = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (!regexSoloLetrasYEspacios.test(newTaskTitle.trim())) {
+      showNotification('⚠️ El título solo puede contener caracteres especiales', 'error')
       return false
     }
     return true
@@ -137,7 +165,21 @@ function App() {
 
   const validarEditarTarea = () => {
     if (!editTitle.trim()) {
-      alert('El título no puede estar vacío')
+      showNotification('⚠️ El título no puede estar vacío', 'error')
+      return false
+    }
+    if (editTitle.length > 50) {
+      showNotification('⚠️ El título no puede exceder los 50 caracteres', 'error')
+      return false
+    }
+    if (editDesc.length > 100) {
+      showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
+      return false
+    }
+    // Validar que solo contenga letras y espacios (sin números ni caracteres especiales)
+    const regexSoloLetrasYEspacios = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    if (!regexSoloLetrasYEspacios.test(editTitle.trim())) {
+      showNotification('⚠️ El título solo puede contener letras y espacios', 'error')
       return false
     }
     return true
@@ -161,30 +203,37 @@ function App() {
       fetchLists()
     } catch (error) {
       console.error('Error creating list:', error)
-      alert('Error al crear la lista')
+      showNotification('❌ Error al crear la lista, no puede teer caracteres especiales', 'error')
     }
   }
 
   // Eliminar lista
-  const eliminarLista = async (id) => {
+  const confirmarEliminarLista = (id) => {
     if (id === 1) {
-      alert('No se puede eliminar la lista principal')
+      showNotification('⚠️ No se puede eliminar la lista principal', 'error')
       return
     }
-    
-    if (!confirm('¿Estás seguro de que quieres eliminar esta lista y todas sus tareas?')) {
-      return
-    }
+    setDeleteListModal(id)
+  }
+
+  const eliminarLista = async () => {
+    if (!deleteListModal) return
 
     try {
-      await apiDelete(`/api/lists/${id}`)
+      await apiDelete(`/api/lists/${deleteListModal}`)
+      setDeleteListModal(null)
       setSelectedList(1)
       fetchLists()
       fetchTasks()
+      showNotification('✅ Lista eliminada exitosamente', 'success')
     } catch (error) {
       console.error('Error deleting list:', error)
-      alert('Error al eliminar la lista')
+      showNotification('❌ Error al eliminar la lista', 'error')
     }
+  }
+
+  const cancelarEliminarLista = () => {
+    setDeleteListModal(null)
   }
 
   // Abrir/cerrar modal
@@ -229,26 +278,35 @@ function App() {
       // Recargar tareas
       await fetchTasks()
       console.log('Tareas recargadas')
+      showNotification('✅ Tarea creada exitosamente', 'success')
       
     } catch (error) {
       console.error('Error adding task:', error)
-      alert('Error al agregar la tarea: ' + error.message)
+      showNotification('❌ Error al agregar la tarea. no pueden tener caracteres especiales: ', 'error')
     }
   }
 
   // Eliminar tarea
-  const eliminarTarea = async (id) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
-      return
-    }
+  const confirmarEliminarTarea = (id) => {
+    setDeleteModalTask(id)
+  }
+
+  const eliminarTarea = async () => {
+    if (!deleteModalTask) return
 
     try {
-      await apiDelete(`/api/tasks/${id}`)
+      await apiDelete(`/api/tasks/${deleteModalTask}`)
+      setDeleteModalTask(null)
       fetchTasks()
+      showNotification('✅ Tarea eliminada exitosamente', 'success')
     } catch (error) {
       console.error('Error deleting task:', error)
-      alert('Error al eliminar la tarea')
+      showNotification('❌ Error al eliminar la tarea', 'error')
     }
+  }
+
+  const cancelarEliminarTarea = () => {
+    setDeleteModalTask(null)
   }
 
   // Completar/descompletar tarea
@@ -259,7 +317,7 @@ function App() {
       fetchTasks()
     } catch (error) {
       console.error('Error toggling task:', error)
-      alert('Error al completar la tarea')
+      showNotification('❌ Error al completar la tarea', 'error')
     }
   }
 
@@ -289,9 +347,10 @@ function App() {
       setEditDesc('')
       setEditPriority('baja')
       fetchTasks()
+      showNotification('✅ Tarea actualizada exitosamente', 'success')
     } catch (error) {
       console.error('Error updating task:', error)
-      alert('Error al actualizar la tarea')
+      showNotification('❌ Error al actualizar la tarea', 'error')
     }
   }
 
@@ -314,19 +373,25 @@ function App() {
         
         {/* Formulario para nueva lista */}
         <div className="formulario-lista">
-          <input 
-            type="text" 
-            placeholder="Nueva lista..."
-            value={newListName}
-            onChange={(e) => setNewListName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && crearLista()}
-          />
-          <input 
-            type="color" 
-            value={newListColor}
-            onChange={(e) => setNewListColor(e.target.value)}
-          />
-          <button onClick={crearLista} className="boton-agregar-lista">+</button>
+          <div className="input-list-container">
+            <input 
+              type="text" 
+              placeholder="Nueva lista..."
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && crearLista()}
+              maxLength={20}
+            />
+            <span className="char-counter-list">{newListName.length}/20</span>
+          </div>
+          <div className="list-inputs-right">
+            <input 
+              type="color" 
+              value={newListColor}
+              onChange={(e) => setNewListColor(e.target.value)}
+            />
+            <button onClick={crearLista} className="boton-agregar-lista">+</button>
+          </div>
         </div>
         
         {/* Contenedor de listas */}
@@ -348,10 +413,11 @@ function App() {
                   className="boton-eliminar-lista"
                   onClick={(e) => {
                     e.stopPropagation()
-                    eliminarLista(list.id)
+                    confirmarEliminarLista(list.id)
                   }}
+                  title="Eliminar lista"
                 >
-                  ✕
+                  🗑️
                 </button>
               )}
             </div>
@@ -418,16 +484,24 @@ function App() {
               >
                 {editingTask === task.id ? (
                   <div className="editar-tarea-form">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      autoFocus
-                    />
-                    <textarea
-                      value={editDesc}
-                      onChange={(e) => setEditDesc(e.target.value)}
-                    />
+                    <div className="input-with-counter">
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        maxLength={50}
+                        autoFocus
+                      />
+                      <span className="char-counter">{editTitle.length}/50</span>
+                    </div>
+                    <div className="input-with-counter">
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        maxLength={100}
+                      />
+                      <span className="char-counter">{editDesc.length}/100</span>
+                    </div>
                     <select
                       value={editPriority}
                       onChange={(e) => setEditPriority(e.target.value)}
@@ -479,7 +553,7 @@ function App() {
                       </button>
                       <button 
                         className="boton-eliminar"
-                        onClick={() => eliminarTarea(task.id)}
+                        onClick={() => confirmarEliminarTarea(task.id)}
                       >
                         🗑️
                       </button>
@@ -504,33 +578,92 @@ function App() {
               <button className="modal-close" onClick={closeModal}>✕</button>
             </div>
             <div className="modal-form">
-              <input 
-                type="text" 
-                placeholder="Título de la tarea"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && agregarTarea()}
-                autoFocus
-              />
-              <textarea 
-                placeholder="Descripción (opcional)"
-                value={newTaskDesc}
-                onChange={(e) => setNewTaskDesc(e.target.value)}
-              />
-              <select
-                value={newTaskPriority}
-                onChange={(e) => setNewTaskPriority(e.target.value)}
-              >
-                <option value="baja">🟢 Prioridad Baja</option>
-                <option value="media">🟡 Prioridad Media</option>
-                <option value="alta">🔴 Prioridad Alta</option>
-              </select>
+              <div className="input-with-counter">
+                <input 
+                  type="text" 
+                  placeholder="Título de la tarea"
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && agregarTarea()}
+                  maxLength={50}
+                  autoFocus
+                />
+                <span className="char-counter">{newTaskTitle.length}/50</span>
+              </div>
+              <div className="input-with-counter">
+                <textarea 
+                  placeholder="Descripción (opcional)"
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  maxLength={100}
+                />
+                <span className="char-counter">{newTaskDesc.length}/100</span>
+              </div>
+                      <select
+                        value={newTaskPriority}
+                        onChange={(e) => setNewTaskPriority(e.target.value)}
+                      >
+                        <option value="baja">🟢 Prioridad Baja</option>
+                        <option value="media">🟡 Prioridad Media</option>
+                        <option value="alta">🔴 Prioridad Alta</option>
+                      </select>
               <button className="modal-submit" onClick={agregarTarea}>
                 Agregar Tarea
               </button>
             </div>
           </div>
         </div>
+
+        {/* Modal de confirmación para eliminar tarea */}
+        <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={cancelarEliminarTarea}>
+          <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚠️ Confirmar Eliminación</h3>
+              <button className="modal-close" onClick={cancelarEliminarTarea}>✕</button>
+            </div>
+            <div className="delete-modal-content">
+              <p>¿Estás seguro de que deseas eliminar esta tarea?</p>
+              <p className="delete-warning">Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="delete-modal-buttons">
+              <button className="cancelar-btn" onClick={cancelarEliminarTarea}>
+                ✕ Cancelar
+              </button>
+              <button className="confirmar-eliminar-btn" onClick={eliminarTarea}>
+                🗑️ Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal de confirmación para eliminar lista */}
+        <div className={`modal-overlay delete-modal-overlay ${deleteListModal ? 'active' : ''}`} onClick={cancelarEliminarLista}>
+          <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚠️ Eliminar Lista</h3>
+              <button className="modal-close" onClick={cancelarEliminarLista}>✕</button>
+            </div>
+            <div className="delete-modal-content">
+              <p>¿Estás seguro de que deseas eliminar esta lista?</p>
+              <p className="delete-warning">Se eliminarán todas las tareas contenidas en ella. Esta acción no se puede deshacer.</p>
+            </div>
+            <div className="delete-modal-buttons">
+              <button className="cancelar-btn" onClick={cancelarEliminarLista}>
+                ✕ Cancelar
+              </button>
+              <button className="confirmar-eliminar-btn" onClick={eliminarLista}>
+                🗑️ Eliminar Lista
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Notificaciones */}
+        {notification && (
+          <div className={`notification notification-${notification.type}`}>
+            {notification.message}
+          </div>
+        )}
       </main>
     </>
   )

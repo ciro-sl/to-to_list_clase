@@ -32,7 +32,7 @@ body {
     margin-bottom: 15px;
     text-align: center;
     padding-bottom: 10px;
-    border-bottom: 2px solid #34495e;
+    border-bottom: 2px solid #00cec9;
     font-size: 15px;
     display: flex;
     align-items: center;
@@ -45,22 +45,47 @@ body {
     display: flex;
     gap: 6px;
     margin-bottom: 12px;
+    align-items: flex-start;
+}
+
+.input-list-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.char-counter-list {
+    position: absolute;
+    right: 8px;
+    bottom: -18px;
+    font-size: 10px;
+    color: #b2bec3;
+}
+
+.list-inputs-right {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
 }
 
 .formulario-lista input[type="text"] {
     flex: 1;
     padding: 10px;
     border-radius: 6px;
-    border: none;
-    background-color: #042f5a;
+    border: 2px solid #636e72;
+    background-color: #2d3436;
     color: white;
     outline: none;
     font-size: 13px;
+    transition: all 0.3s;
 }
 
 .formulario-lista input[type="text"]:focus {
-    border: 2px solid #3498db;
+    border: 2px solid #00cec9;
     padding: 8px;
+    box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2);
 }
 
 .formulario-lista input[type="text"]::placeholder {
@@ -70,17 +95,22 @@ body {
 .formulario-lista input[type="color"] {
     width: 36px;
     height: 36px;
-    border: none;
+    border: 2px solid #636e72;
     border-radius: 6px;
     cursor: pointer;
-    background-color: #042f5a;
+    background-color: #2d3436;
     padding: 2px;
+    transition: all 0.3s;
+}
+
+.formulario-lista input[type="color"]:hover {
+    border-color: #00cec9;
 }
 
 .boton-agregar-lista {
     width: 36px;
     padding: 8px;
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
     border: none;
     border-radius: 6px;
@@ -88,10 +118,59 @@ body {
     font-size: 18px;
     font-weight: bold;
     transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
 }
 
 .boton-agregar-lista:hover {
     transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.5);
+}
+
+/* Notificaciones */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    animation: slideDown 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    color: white;
+    border-left: 4px solid #2ecc71;
+}
+
+.notification-error {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    border-left: 4px solid #ff6b6b;
+}
+
+.notification-info {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border-left: 4px solid #5dade2;
 }
 
 /* Contenedor de listas */
@@ -122,7 +201,7 @@ body {
 }
 
 .lista-item.lista-activa {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #00b894, #00cec9);
 }
 
 .lista-contenido {
@@ -140,14 +219,19 @@ body {
 }
 
 .boton-eliminar-lista {
-    background: none;
+    background: linear-gradient(135deg, #ff7675, #d63031);
     border: none;
-    color: #e74c3c;
-    padding: 6px;
+    color: white;
+    padding: 6px 10px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 12px;
+    border-radius: 6px;
     opacity: 0;
-    transition: all 0.2s;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(255, 118, 117, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .lista-item:hover .boton-eliminar-lista {
@@ -155,7 +239,8 @@ body {
 }
 
 .boton-eliminar-lista:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(255, 118, 117, 0.5);
 }
 
 /* Contenido principal */
@@ -215,9 +300,9 @@ body {
 }
 
 .filtro-btn.active {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.4);
 }
 
 /* Stats badges */
@@ -255,12 +340,12 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #27ae60, #1e8449);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
     border: none;
     font-size: 30px;
     cursor: pointer;
-    box-shadow: 0 4px 20px rgba(39, 174, 96, 0.5);
+    box-shadow: 0 4px 20px rgba(0, 184, 148, 0.5);
     transition: all 0.3s;
     display: flex;
     align-items: center;
@@ -270,7 +355,7 @@ body {
 
 .floating-btn:hover {
     transform: scale(1.1) rotate(90deg);
-    box-shadow: 0 6px 25px rgba(39, 174, 96, 0.7);
+    box-shadow: 0 6px 25px rgba(0, 184, 148, 0.7);
 }
 
 /* Modal */
@@ -293,6 +378,63 @@ body {
 .modal-overlay.active {
     opacity: 1;
     visibility: visible;
+}
+
+/* Delete Confirmation Modal */
+.delete-modal-overlay .modal {
+    max-width: 400px;
+    text-align: center;
+}
+
+.delete-modal-content {
+    margin-bottom: 25px;
+}
+
+.delete-modal-content p {
+    color: #2c3e50;
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+
+.delete-warning {
+    color: #e74c3c;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Delete list modal specific styles */
+.delete-modal-overlay:nth-of-type(2) .delete-modal-content p:first-child {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3436;
+}
+
+.delete-modal-overlay:nth-of-type(2) .delete-warning {
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.delete-modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.confirmar-eliminar-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.confirmar-eliminar-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.4);
 }
 
 .modal {
@@ -348,15 +490,36 @@ body {
     gap: 15px;
 }
 
+.input-with-counter {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-with-counter input {
+    width: 100%;
+}
+
+.char-counter {
+    position: absolute;
+    right: 10px;
+    bottom: -20px;
+    font-size: 11px;
+    color: #b2bec3;
+}
+
+.input-with-counter input:focus + .char-counter {
+    color: #00cec9;
+}
+
 .modal-form input,
 .modal-form textarea {
-    background-color: #15304b;  /* Fondo azul claro para los inputs */
-    /* ... resto del código ... */
+    background-color: #2d3436;
     padding: 14px 16px;
     border-radius: 10px;
-    border: 2px solid #15304b;            /* Borde claro para los inputs */
+    border: 2px solid #636e72;
     font-size: 14px;
-    color: white;                            /* Texto blanco para los inputs */
+    color: white;
     font-family: inherit;
     outline: none;
     transition: all 0.3s;
@@ -364,23 +527,25 @@ body {
 .modal-form select {
     padding: 14px 16px;
     border-radius: 10px;
-    border: 2px solid #f0e2e2;
+    border: 2px solid #636e72;
     font-size: 14px;
     font-family: inherit;
     outline: none;
     transition: all 0.3s;
+    background: #2d3436;
+    color: white;
 }
 
 .modal-form input:focus,
 .modal-form textarea:focus,
 .modal-form select:focus {
-    border-color: #db9834;
-    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    border-color: #00cec9;
+    box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2);
 }
 
 .modal-form input::placeholder,
 .modal-form textarea::placeholder {
-    color: #ffffff;
+    color: #b2bec3;
 }
 
 .modal-form textarea {
@@ -398,18 +563,19 @@ body {
     padding: 14px;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, #27ae60, #1e8449);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
     margin-top: 10px;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
 }
 
 .modal-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    box-shadow: 0 6px 20px rgba(0, 184, 148, 0.5);
 }
 
 /* Lista de tareas */
@@ -428,10 +594,10 @@ body {
     border-radius: 12px;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 12px;
     transition: all 0.3s;
-    border-left: 5px solid #3498db;
+    border-left: 5px solid #00cec9;
 }
 
 .tarea-item:hover {
@@ -441,16 +607,18 @@ body {
 
 .tarea-item.completada {
     background: linear-gradient(135deg, #d5f5e3, #abebc6);
-    border-left-color: #27ae60;
+    border-left-color: #00b894;
 }
 
 .tarea-contenido {
     flex: 1;
-    padding-right: 15px;
 }
 
 .tarea-titulo {
-    display: block;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     font-size: 17px;
     color: #2c3e50;
     margin-bottom: 4px;
@@ -465,7 +633,8 @@ body {
 .tarea-descripcion {
     color: #7f8c8d;
     font-size: 13px;
-    margin-top: 4px;
+    margin-top: 6px;
+    line-height: 1.4;
 }
 
 .tarea-completada .tarea-descripcion {
@@ -475,74 +644,89 @@ body {
 /* Prioridad */
 .prioridad {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 15px;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     margin-left: 8px;
+    text-transform: uppercase;
 }
 
 .prioridad-alta {
-    background: #fadbd8;
-    color: #e74c3c;
+    background: #ffebee;
+    color: #c62828;
 }
 
 .prioridad-media {
-    background: #fdebd0;
-    color: #f39c12;
+    background: #fff9c4;
+    color: #f57f17;
 }
 
 .prioridad-baja {
-    background: #d5f5e3;
-    color: #27ae60;
+    background: #c8e6c9;
+    color: #2e7d32;
 }
 
 /* Botones */
 .botones-container {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
 }
 
 .boton-completar,
 .boton-editar,
 .boton-eliminar {
     border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
     transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 40px;
 }
 
 .boton-completar {
-    background: linear-gradient(135deg, #27ae60, #1e8449);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
 }
 
 .boton-completar:hover {
     transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.5);
 }
 
 .boton-completar.completado {
-    background: linear-gradient(135deg, #f39c12, #d68910);
+    background: linear-gradient(135deg, #fdcb6e, #f39c12);
+    box-shadow: 0 2px 8px rgba(253, 203, 110, 0.3);
 }
 
 .boton-editar {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
     color: white;
+    box-shadow: 0 2px 8px rgba(116, 185, 255, 0.3);
 }
 
 .boton-editar:hover {
     transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(116, 185, 255, 0.5);
 }
 
 .boton-eliminar {
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    background: linear-gradient(135deg, #ff7675, #d63031);
     color: white;
+    box-shadow: 0 2px 8px rgba(255, 118, 117, 0.3);
 }
 
 .boton-eliminar:hover {
     transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(255, 118, 117, 0.5);
 }
 
 /* Formulario de edición */
@@ -557,16 +741,42 @@ body {
 .editar-tarea-form textarea {
     padding: 10px;
     border-radius: 6px;
-    border: 2px solid #3498db;
+    border: 2px solid #b2bec3;
     font-size: 13px;
-    background: #042f5a;
-    color: white;
+    background: white;
+    color: #2c3e50;
     font-family: inherit;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.editar-tarea-form input:focus,
+.editar-tarea-form textarea:focus {
+    border-color: #00cec9;
+    box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2);
 }
 
 .editar-tarea-form textarea {
     resize: vertical;
     min-height: 50px;
+}
+
+.editar-tarea-form select {
+    padding: 10px;
+    border-radius: 6px;
+    border: 2px solid #636e72;
+    font-size: 13px;
+    background: white;
+    color: black;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.editar-tarea-form select:focus {
+    border-color: #00cec9;
+    box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2);
 }
 
 .botones-edicion {
@@ -586,21 +796,25 @@ body {
 }
 
 .guardar-btn {
-    background: linear-gradient(135deg, #27ae60, #1e8449);
+    background: linear-gradient(135deg, #00b894, #00cec9);
     color: white;
+    box-shadow: 0 2px 8px rgba(0, 184, 148, 0.3);
 }
 
 .guardar-btn:hover {
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 184, 148, 0.5);
 }
 
 .cancelar-btn {
-    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    background: linear-gradient(135deg, #b2bec3, #636e72);
     color: white;
+    box-shadow: 0 2px 8px rgba(178, 190, 195, 0.3);
 }
 
 .cancelar-btn:hover {
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(178, 190, 195, 0.5);
 }
 
 /* Mensaje vacío */
