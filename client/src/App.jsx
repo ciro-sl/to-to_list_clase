@@ -150,6 +150,10 @@ function App() {
       showNotification('⚠️ El título no puede exceder los 50 caracteres', 'error')
       return false
     }
+    if (newTaskDesc.length > 100) {
+      showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
+      return false
+    }
     // Validar que solo contenga letras y espacios (sin números ni caracteres especiales)
     const regexSoloLetrasYEspacios = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
     if (!regexSoloLetrasYEspacios.test(newTaskTitle.trim())) {
@@ -166,6 +170,10 @@ function App() {
     }
     if (editTitle.length > 50) {
       showNotification('⚠️ El título no puede exceder los 50 caracteres', 'error')
+      return false
+    }
+    if (editDesc.length > 100) {
+      showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
       return false
     }
     // Validar que solo contenga letras y espacios (sin números ni caracteres especiales)
@@ -486,10 +494,14 @@ function App() {
                       />
                       <span className="char-counter">{editTitle.length}/50</span>
                     </div>
-                    <textarea
-                      value={editDesc}
-                      onChange={(e) => setEditDesc(e.target.value)}
-                    />
+                    <div className="input-with-counter">
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        maxLength={100}
+                      />
+                      <span className="char-counter">{editDesc.length}/100</span>
+                    </div>
                     <select
                       value={editPriority}
                       onChange={(e) => setEditPriority(e.target.value)}
@@ -578,11 +590,15 @@ function App() {
                 />
                 <span className="char-counter">{newTaskTitle.length}/50</span>
               </div>
-              <textarea 
-                placeholder="Descripción (opcional)"
-                value={newTaskDesc}
-                onChange={(e) => setNewTaskDesc(e.target.value)}
-              />
+              <div className="input-with-counter">
+                <textarea 
+                  placeholder="Descripción (opcional)"
+                  value={newTaskDesc}
+                  onChange={(e) => setNewTaskDesc(e.target.value)}
+                  maxLength={100}
+                />
+                <span className="char-counter">{newTaskDesc.length}/100</span>
+              </div>
                       <select
                         value={newTaskPriority}
                         onChange={(e) => setNewTaskPriority(e.target.value)}

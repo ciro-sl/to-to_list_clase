@@ -594,8 +594,8 @@ body {
     border-radius: 12px;
     box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 12px;
     transition: all 0.3s;
     border-left: 5px solid #00cec9;
 }
@@ -612,11 +612,13 @@ body {
 
 .tarea-contenido {
     flex: 1;
-    padding-right: 15px;
 }
 
 .tarea-titulo {
-    display: block;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     font-size: 17px;
     color: #2c3e50;
     margin-bottom: 4px;
@@ -631,7 +633,8 @@ body {
 .tarea-descripcion {
     color: #7f8c8d;
     font-size: 13px;
-    margin-top: 4px;
+    margin-top: 6px;
+    line-height: 1.4;
 }
 
 .tarea-completada .tarea-descripcion {
@@ -667,18 +670,25 @@ body {
 /* Botones */
 .botones-container {
     display: flex;
-    gap: 6px;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
 }
 
 .boton-completar,
 .boton-editar,
 .boton-eliminar {
     border: none;
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
     transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 40px;
 }
 
 .boton-completar {
