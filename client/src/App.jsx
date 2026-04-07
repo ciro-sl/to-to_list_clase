@@ -15,7 +15,6 @@ const formatTime = (timeString) => {
   return timeString.substring(0, 5)
 }
 
-// Función para formatear tiempo restante
 const formatTimeRemaining = (targetDate, targetTime) => {
   if (!targetDate || !targetTime) return null
   
@@ -81,7 +80,6 @@ const isTaskOverdue = (task) => {
   return true
 }
 
-// Verificar si una tarea está por vencer (dentro de 1 hora)
 const isTaskUrgent = (task) => {
   if (!task.date || !task.endTime || task.completed) return false
   
@@ -103,10 +101,8 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
   const [notificationHistory, setNotificationHistory] = useState([])
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [lastNotificationCount, setLastNotificationCount] = useState(0)
-  const audioRef = useRef(null)
   const panelRef = useRef(null)
   
-  // Cerrar panel al hacer click fuera de él
   useEffect(() => {
     if (!showPanel) return
     
@@ -116,7 +112,6 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
       }
     }
     
-    // Agregar el event listener después de un pequeño delay para evitar que se cierre inmediatamente
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside)
     }, 100)
@@ -127,27 +122,22 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
     }
   }, [showPanel])
   
-  // Obtener tareas vencidas
   const overdueTasks = useMemo(() => {
     return tasks.filter(task => isTaskOverdue(task))
   }, [tasks])
   
-  // Obtener tareas por vencer (urgentes)
   const urgentTasks = useMemo(() => {
     return tasks.filter(task => isTaskUrgent(task) && !isTaskOverdue(task))
   }, [tasks])
   
-  // Obtener tareas completadas recientemente
   const recentCompleted = useMemo(() => {
     return tasks.filter(task => task.completed).slice(0, 10)
   }, [tasks])
   
   const totalNotifications = overdueTasks.length + urgentTasks.length
   
-  // Reproducir sonido de notificación
   useEffect(() => {
     if (totalNotifications > lastNotificationCount && soundEnabled) {
-      // Crear un beep simple usando Web Audio API
       try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)()
         const oscillator = audioContext.createOscillator()
@@ -171,7 +161,6 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
     setLastNotificationCount(totalNotifications)
   }, [totalNotifications, soundEnabled, lastNotificationCount])
   
-  // Agregar a historial cuando cambia el conteo
   useEffect(() => {
     if (overdueTasks.length > 0) {
       const now = new Date()
@@ -185,14 +174,10 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
     }
   }, [overdueTasks.length])
   
-  const togglePanel = () => {
-    setShowPanel(!showPanel)
-  }
+  const togglePanel = () => setShowPanel(!showPanel)
   
   const handleTaskClick = (task) => {
-    if (onTaskClick) {
-      onTaskClick(task)
-    }
+    if (onTaskClick) onTaskClick(task)
     setShowPanel(false)
   }
   
@@ -207,9 +192,7 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
     return formatTimeRemaining(task.date, task.endTime)
   }
   
-  const clearHistory = () => {
-    setNotificationHistory([])
-  }
+  const clearHistory = () => setNotificationHistory([])
   
   const renderTaskItem = (task, isNotification = false) => {
     const urgency = getUrgencyColor(task)
@@ -242,13 +225,9 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
         
         <div className="notification-item-meta">
           <div className="meta-row">
-            <span className="meta-date">
-              📅 {formatDate(task.date) || 'Sin fecha'}
-            </span>
+            <span className="meta-date">📅 {formatDate(task.date) || 'Sin fecha'}</span>
             {(task.startTime || task.endTime) && (
-              <span className="meta-time">
-                🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}
-              </span>
+              <span className="meta-time">🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}</span>
             )}
           </div>
           
@@ -260,32 +239,19 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
           )}
         </div>
         
-        <div className="notification-item-actions">
-          {isNotification && (
-            <>
-              <button 
-                className="notification-action-btn view-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleTaskClick(task)
-                }}
-              >
-                👁️ Ver
-              </button>
-              {urgency !== 'overdue' && !task.completed && (
-                <button 
-                  className="notification-action-btn complete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    // Completar tarea desde notificación
-                  }}
-                >
-                  ✓ Completar
-                </button>
-              )}
-            </>
-          )}
-        </div>
+        {isNotification && (
+          <div className="notification-item-actions">
+            <button 
+              className="notification-action-btn view-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleTaskClick(task)
+              }}
+            >
+              👁️ Ver
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -293,19 +259,16 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
   return (
     <div className="notification-bar">
       <button 
-        className={`notification-bell ${totalNotifications > 0 ? 'has-notifications' : ''} ${totalNotifications > 0 ? 'bell-ring' : ''}`}
+        className={`notification-bell ${totalNotifications > 0 ? 'has-notifications' : ''}`}
         onClick={togglePanel}
         title={totalNotifications > 0 ? `${totalNotifications} alerta${totalNotifications !== 1 ? 's' : ''}` : 'Sin alertas'}
       >
-        <span className="bell-icon">
-          {totalNotifications > 0 ? '🔔' : '🔕'}
-        </span>
+        <span className="bell-icon">{totalNotifications > 0 ? '🔔' : '🔕'}</span>
         {totalNotifications > 0 && (
           <span className="notification-count">{totalNotifications}</span>
         )}
       </button>
       
-      {/* Botón de sonido */}
       <button 
         className={`sound-toggle ${soundEnabled ? 'enabled' : 'disabled'}`}
         onClick={() => setSoundEnabled(!soundEnabled)}
@@ -319,77 +282,37 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
           <div className="notification-overlay" onClick={() => setShowPanel(false)} />
           <div className="notification-panel" ref={panelRef}>
             <div className="notification-panel-header">
-              <h3>
-                🔔 Centro de Alertas
-                {totalNotifications > 0 && (
-                  <span className="header-badge">{totalNotifications}</span>
-                )}
-              </h3>
+              <h3>🔔 Centro de Alertas</h3>
               <div className="header-actions">
-                <button 
-                  className="clear-history-btn"
-                  onClick={clearHistory}
-                  title="Limpiar historial"
-                >
-                  🗑️
-                </button>
+                <button className="clear-history-btn" onClick={clearHistory} title="Limpiar historial">🗑️</button>
                 <button className="close-panel" onClick={() => setShowPanel(false)}>✕</button>
               </div>
             </div>
             
-            {/* Tabs de navegación */}
             <div className="notification-tabs">
-              <button 
-                className={`tab-btn ${activeTab === 'overdue' ? 'active' : ''}`}
-                onClick={() => setActiveTab('overdue')}
-              >
+              <button className={`tab-btn ${activeTab === 'overdue' ? 'active' : ''}`} onClick={() => setActiveTab('overdue')}>
                 ⏰ Vencidas
-                {overdueTasks.length > 0 && (
-                  <span className="tab-badge danger">{overdueTasks.length}</span>
-                )}
+                {overdueTasks.length > 0 && <span className="tab-badge danger">{overdueTasks.length}</span>}
               </button>
-              <button 
-                className={`tab-btn ${activeTab === 'urgent' ? 'active' : ''}`}
-                onClick={() => setActiveTab('urgent')}
-              >
+              <button className={`tab-btn ${activeTab === 'urgent' ? 'active' : ''}`} onClick={() => setActiveTab('urgent')}>
                 ⚡ Próximas
-                {urgentTasks.length > 0 && (
-                  <span className="tab-badge warning">{urgentTasks.length}</span>
-                )}
+                {urgentTasks.length > 0 && <span className="tab-badge warning">{urgentTasks.length}</span>}
               </button>
-              <button 
-                className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-                onClick={() => setActiveTab('history')}
-              >
+              <button className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>
                 📜 Historial
-                {notificationHistory.length > 0 && (
-                  <span className="tab-badge">{notificationHistory.length}</span>
-                )}
               </button>
             </div>
             
             <div className="notification-panel-content">
               {activeTab === 'overdue' && (
-                overdueTasks.length > 0 ? (
-                  overdueTasks.map(task => renderTaskItem(task, true))
-                ) : (
-                  <div className="empty-state">
-                    <span className="empty-icon">🎉</span>
-                    <p>¡Sin tareas vencidas!</p>
-                    <span className="empty-subtext">Todo está al día</span>
-                  </div>
+                overdueTasks.length > 0 ? overdueTasks.map(task => renderTaskItem(task, true)) : (
+                  <div className="empty-state"><span className="empty-icon">🎉</span><p>¡Sin tareas vencidas!</p></div>
                 )
               )}
               
               {activeTab === 'urgent' && (
-                urgentTasks.length > 0 ? (
-                  urgentTasks.map(task => renderTaskItem(task, true))
-                ) : (
-                  <div className="empty-state">
-                    <span className="empty-icon">😌</span>
-                    <p>Sin tareas urgentes</p>
-                    <span className="empty-subtext">Tienes tiempo de sobra</span>
-                  </div>
+                urgentTasks.length > 0 ? urgentTasks.map(task => renderTaskItem(task, true)) : (
+                  <div className="empty-state"><span className="empty-icon">😌</span><p>Sin tareas urgentes</p></div>
                 )
               )}
               
@@ -404,32 +327,16 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
                     ))}
                   </div>
                 ) : (
-                  <div className="empty-state">
-                    <span className="empty-icon">📝</span>
-                    <p>Sin historial</p>
-                    <span className="empty-subtext">Las alertas aparecerán aquí</span>
-                  </div>
+                  <div className="empty-state"><span className="empty-icon">📝</span><p>Sin historial</p></div>
                 )
               )}
             </div>
             
             <div className="notification-panel-footer">
               <div className="quick-stats">
-                <span className="stat-item">
-                  <span className="stat-icon overdue">⏰</span>
-                  <span className="stat-value">{overdueTasks.length}</span>
-                  <span className="stat-label">Vencidas</span>
-                </span>
-                <span className="stat-item">
-                  <span className="stat-icon urgent">⚡</span>
-                  <span className="stat-value">{urgentTasks.length}</span>
-                  <span className="stat-label">Urgentes</span>
-                </span>
-                <span className="stat-item">
-                  <span className="stat-icon completed">✅</span>
-                  <span className="stat-value">{recentCompleted.length}</span>
-                  <span className="stat-label">Completadas</span>
-                </span>
+                <span className="stat-item"><span className="stat-icon overdue">⏰</span><span className="stat-value">{overdueTasks.length}</span><span className="stat-label">Vencidas</span></span>
+                <span className="stat-item"><span className="stat-icon urgent">⚡</span><span className="stat-value">{urgentTasks.length}</span><span className="stat-label">Urgentes</span></span>
+                <span className="stat-item"><span className="stat-icon completed">✅</span><span className="stat-value">{recentCompleted.length}</span><span className="stat-label">Completadas</span></span>
               </div>
             </div>
           </div>
@@ -441,10 +348,11 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
 
 // ================= COMPONENTE CALENDARIO MEJORADO =================
 
+// ================= COMPONENTE CALENDARIO MEJORADO CON NAVEGACIÓN =================
+
 const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [viewMode, setViewMode] = useState('month')
-  const [selectedTask, setSelectedTask] = useState(null)
   
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
@@ -455,33 +363,16 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
     const startingDay = firstDay.getDay()
     
     const days = []
-    
     for (let i = 0; i < startingDay; i++) {
       const prevDate = new Date(year, month, -startingDay + i + 1)
       days.push({ date: prevDate, currentMonth: false })
     }
-    
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({ date: new Date(year, month, i), currentMonth: true })
     }
-    
     const remainingDays = 42 - days.length
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ date: new Date(year, month + 1, i), currentMonth: false })
-    }
-    
-    return days
-  }
-  
-  const getWeekDays = (date) => {
-    const days = []
-    const startOfWeek = new Date(date)
-    startOfWeek.setDate(date.getDate() - date.getDay())
-    
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(startOfWeek)
-      day.setDate(startOfWeek.getDate() + i)
-      days.push(day)
     }
     return days
   }
@@ -499,37 +390,44 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
     return date.toDateString() === today.toDateString()
   }
   
-  const isSelected = (date) => {
-    return selectedDate && date.toDateString() === selectedDate.toDateString()
-  }
+  const isSelected = (date) => selectedDate && date.toDateString() === selectedDate.toDateString()
   
   const getDayStatus = (date) => {
     const dayTasks = getTasksForDate(date)
     const hasOverdue = dayTasks.some(t => isTaskOverdue(t))
     const hasUrgent = dayTasks.some(t => isTaskUrgent(t))
     const allCompleted = dayTasks.length > 0 && dayTasks.every(t => t.completed)
-    
     return { hasOverdue, hasUrgent, allCompleted, count: dayTasks.length }
   }
+  
+  // Función mejorada para manejar clic en fecha
+  const handleDateClick = (date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    const tasksOnDate = getTasksForDate(date)
+    
+    if (tasksOnDate.length > 0) {
+      // Si hay tareas, cerrar calendario y pasar la fecha seleccionada
+      onSelectDate(date)
+    } else {
+      // Si no hay tareas, mostrar mensaje y no cerrar el calendario
+      alert(`📅 No hay tareas agendadas para el ${formatDate(dateStr)}`)
+    }
+  }
+
+  const clearDateFilter = () => {
+  setSelectedDate(null)
+  showNotification('📅 Filtro de fecha eliminado', 'info')
+}
   
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
   
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-  }
-  
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-  }
-  
-  const goToToday = () => {
-    setCurrentMonth(new Date())
-  }
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
+  const goToToday = () => setCurrentMonth(new Date())
   
   const days = getDaysInMonth(currentMonth)
-  const weekDays = getWeekDays(currentMonth)
   
   return (
     <div className="modal-overlay active" onClick={onClose}>
@@ -537,9 +435,8 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
         <div className="modal-header">
           <h3>📅 Calendario de Tareas</h3>
           <div className="header-legend">
-            <span className="legend-item"><span className="dot overdue"></span> Vencidas</span>
-            <span className="legend-item"><span className="dot urgent"></span> Urgentes</span>
-            <span className="legend-item"><span className="dot completed"></span> Completadas</span>
+            <span className="legend-item"><span className="dot overdue"></span> Con tareas</span>
+            <span className="legend-item"><span className="dot urgent"></span> Tareas urgentes</span>
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
@@ -547,125 +444,130 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
         <div className="calendar-container">
           <div className="calendar-header">
             <div className="calendar-nav">
-              <button onClick={viewMode === 'month' ? prevMonth : () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>
-                ◀
-              </button>
-              <h3>
-                {viewMode === 'month' 
-                  ? `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`
-                  : `${monthNames[weekDays[0].getMonth()]} ${weekDays[0].getDate()} - ${monthNames[weekDays[6].getMonth()]} ${weekDays[6].getDate()}`}
-              </h3>
-              <button onClick={viewMode === 'month' ? nextMonth : () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>
-                ▶
-              </button>
+              <button onClick={prevMonth}>◀</button>
+              <h3>{`${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`}</h3>
+              <button onClick={nextMonth}>▶</button>
             </div>
             <div className="calendar-controls">
               <button onClick={goToToday} className="today-btn">📍 Hoy</button>
               <select value={viewMode} onChange={(e) => setViewMode(e.target.value)} className="view-mode-select">
                 <option value="month">Mes</option>
-                <option value="week">Semana</option>
               </select>
             </div>
           </div>
           
           <div className="calendar-grid">
             <div className="calendar-weekdays">
-              {dayNames.map(day => (
-                <div key={day} className="weekday">{day}</div>
-              ))}
+              {dayNames.map(day => <div key={day} className="weekday">{day}</div>)}
             </div>
           
-            {viewMode === 'month' ? (
-              <div className="calendar-days">
-                {days.map((dayInfo, index) => {
-                  const dayTasks = getTasksForDate(dayInfo.date)
-                  const status = getDayStatus(dayInfo.date)
-                  return (
-                    <div 
-                      key={index}
-                      className={`calendar-day ${!dayInfo.currentMonth ? 'other-month' : ''} ${isToday(dayInfo.date) ? 'today' : ''} ${isSelected(dayInfo.date) ? 'selected' : ''} ${status.hasOverdue ? 'has-overdue' : ''} ${status.hasUrgent ? 'has-urgent' : ''} ${status.allCompleted ? 'all-completed' : ''}`}
-                      onClick={() => onSelectDate(dayInfo.date)}
-                    >
-                      <span className="day-number">{dayInfo.date.getDate()}</span>
-                      {dayTasks.length > 0 && (
-                        <div className="day-tasks-preview">
-                          {dayTasks.slice(0, 3).map(task => (
-                            <div 
-                              key={task.id} 
-                              className={`task-preview ${task.completed ? 'completed' : ''} ${isTaskOverdue(task) ? 'overdue' : ''} ${isTaskUrgent(task) ? 'urgent' : ''}`}
-                              title={task.title}
-                            >
-                              {isTaskOverdue(task) && '⏰ '}
-                              {isTaskUrgent(task) && '⚡ '}
-                              {task.title.substring(0, 8)}...
+            <div className="calendar-days">
+              {days.map((dayInfo, index) => {
+                const dayTasks = getTasksForDate(dayInfo.date)
+                const status = getDayStatus(dayInfo.date)
+                const hasTasks = dayTasks.length > 0
+                const hasUrgentTasks = dayTasks.some(t => isTaskUrgent(t) && !t.completed)
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`calendar-day ${!dayInfo.currentMonth ? 'other-month' : ''} ${isToday(dayInfo.date) ? 'today' : ''} ${isSelected(dayInfo.date) ? 'selected' : ''} ${hasTasks ? 'has-tasks' : ''} ${hasUrgentTasks ? 'has-urgent' : ''}`}
+                    onClick={() => handleDateClick(dayInfo.date)}
+                    style={{ cursor: hasTasks ? 'pointer' : 'default' }}
+                  >
+                    <span className="day-number">{dayInfo.date.getDate()}</span>
+                    {hasTasks && (
+                      <div className="day-tasks-preview">
+                        <div className="day-summary">
+                          <span className="summary-total">{dayTasks.length}</span>
+                          {status.hasOverdue && <span className="summary-overdue">⏰</span>}
+                          {status.hasUrgent && <span className="summary-urgent">⚡</span>}
+                        </div>
+                        <div className="task-preview-mini">
+                          {dayTasks.slice(0, 2).map(task => (
+                            <div key={task.id} className="mini-task" title={task.title}>
+                              {task.title.substring(0, 10)}...
                             </div>
                           ))}
-                          {dayTasks.length > 3 && (
-                            <div className="more-tasks">+{dayTasks.length - 3} más</div>
-                          )}
-                          <div className="day-summary">
-                            <span className="summary-total">{dayTasks.length}</span>
-                            {status.hasOverdue && <span className="summary-overdue">⏰</span>}
-                            {status.hasUrgent && <span className="summary-urgent">⚡</span>}
-                          </div>
+                          {dayTasks.length > 2 && <div className="more-tasks">+{dayTasks.length - 2}</div>}
                         </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="calendar-week">
-                {weekDays.map((day, index) => {
-                  const dayTasks = getTasksForDate(day)
-                  return (
-                    <div 
-                      key={index}
-                      className={`week-day ${isToday(day) ? 'today' : ''} ${isSelected(day) ? 'selected' : ''}`}
-                      onClick={() => onSelectDate(day)}
-                    >
-                      <div className="week-day-header">
-                        <span className="week-day-name">{dayNames[index]}</span>
-                        <span className="week-day-number">{day.getDate()}</span>
                       </div>
-                      <div className="week-day-tasks">
-                        {dayTasks.map(task => (
-                          <div 
-                            key={task.id}
-                            className={`week-task ${task.completed ? 'completed' : ''} ${isTaskOverdue(task) ? 'overdue' : ''} ${isTaskUrgent(task) ? 'urgent' : ''}`}
-                            title={`${task.title}\n${formatTime(task.startTime)} - ${formatTime(task.endTime)}`}
-                          >
-                            <span className="week-task-time">{formatTime(task.startTime)}</span>
-                            <span className="week-task-title">{task.title}</span>
-                            {isTaskOverdue(task) && <span className="task-status-badge">⏰</span>}
-                            {isTaskUrgent(task) && <span className="task-status-badge">⚡</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+           {selectedDate && (
+            <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
+              ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
+                 </button>
+)}
+          <div className="calendar-footer">
+            <div className="calendar-tip">
+              💡 <strong>Tip:</strong> Haz clic en un día con tareas para verlas en la lista principal
+            </div>
           </div>
         </div>
       </div>
     </div>
   )
 }
+// Función para resaltar una tarea específica
+const highlightTaskById = (taskId) => {
+  setTimeout(() => {
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`)
+    if (taskElement) {
+      taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      taskElement.classList.add('highlight-task')
+      setTimeout(() => taskElement.classList.remove('highlight-task'), 2000)
+    }
+  }, 300)
+}
+
+// Modifica el handleDateSelect para resaltar la primera tarea:
+const handleDateSelect = (date) => {
+  // Cerrar el calendario
+  setShowCalendar(false)
+  
+  // Salir del modo "Tareas Programadas" si estaba activo
+  setShowScheduledOnly(false)
+  
+  // Limpiar cualquier filtro anterior
+  setFilter('todas')
+  
+  // ✅ GUARDAR LA FECHA SELECCIONADA
+  setSelectedDate(date)
+  
+  const dateStr = date.toISOString().split('T')[0]
+  
+  // ✅ Buscar tareas en esa fecha (incluyendo programadas)
+  const tasksOnDate = tasks.filter(t => t.date === dateStr)
+  
+  if (tasksOnDate.length > 0) {
+    // Cambiar a la lista donde está la primera tarea
+    setSelectedList(tasksOnDate[0].list_id)
+    showNotification(`📅 Mostrando ${tasksOnDate.length} tarea(s) del ${formatDate(dateStr)}`, 'info')
+  } else {
+    showNotification(`📅 No hay tareas para el ${formatDate(dateStr)}`, 'info')
+  }
+  
+  // Scroll a la lista de tareas
+  setTimeout(() => {
+    const tasksContainer = document.getElementById('listatareas')
+    if (tasksContainer) {
+      tasksContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 200)
+}
 
 // ================= COMPONENTE REPORTE DE INCUMPLIMIENTO MEJORADO =================
 
 const EnhancedReportModal = ({ tasks, onClose }) => {
-  const [autoRefresh, setAutoRefresh] = useState(false)
-  const [refreshInterval, setRefreshInterval] = useState(5)
-  const [showFilters, setShowFilters] = useState(false)
-  const [priorityFilter, setPriorityFilter] = useState('all')
-  const intervalRef = useRef(null)
   const currentTime = new Date()
   
   const violatedTasks = useMemo(() => {
-    let filtered = tasks.filter(task => {
+    return tasks.filter(task => {
       if (!task.date || !task.endTime || task.completed) return false
       
       const now = new Date()
@@ -692,112 +594,7 @@ const EnhancedReportModal = ({ tasks, onClose }) => {
       
       return true
     })
-    
-    if (priorityFilter !== 'all') {
-      filtered = filtered.filter(t => t.priority === priorityFilter)
-    }
-    
-    return filtered.sort((a, b) => {
-      // Ordenar por prioridad y luego por fecha
-      const priorityOrder = { alta: 0, media: 1, baja: 2 }
-      return priorityOrder[a.priority] - priorityOrder[b.priority]
-    })
-  }, [tasks, priorityFilter])
-  
-  // Auto-refresh logic
-  useEffect(() => {
-    if (autoRefresh) {
-      intervalRef.current = setInterval(() => {
-        setAutoRefresh(false)
-        setTimeout(() => setAutoRefresh(true), 100)
-      }, refreshInterval * 60 * 1000)
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [autoRefresh, refreshInterval])
-  
-  const generateReportHTML = () => {
-    let html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Reporte de Incumplimientos</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { color: #e74c3c; }
-          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-          th { background-color: #e74c3c; color: white; }
-          tr:nth-child(even) { background-color: #f9f9f9; }
-          .status { color: #e74c3c; font-weight: bold; }
-          .info { color: #666; margin-top: 20px; }
-          .priority-high { color: #e74c3c; }
-          .priority-medium { color: #f39c12; }
-          .priority-low { color: #27ae60; }
-        </style>
-      </head>
-      <body>
-        <h1>📋 Reporte de Tareas Incumplidas</h1>
-        <p class="info"><strong>Fecha de generación:</strong> ${currentTime.toLocaleString('es-ES')}</p>
-        <p class="info"><strong>Total de incumplimientos:</strong> ${violatedTasks.length}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Tarea</th>
-              <th>Prioridad</th>
-              <th>Fecha Programada</th>
-              <th>Hora Inicio</th>
-              <th>Hora Fin</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-    `
-    
-    violatedTasks.forEach(task => {
-      const priorityClass = `priority-${task.priority}`
-      html += `
-        <tr>
-          <td>${task.title}</td>
-          <td class="${priorityClass}">${task.priority.toUpperCase()}</td>
-          <td>${formatDate(task.date)}</td>
-          <td>${formatTime(task.startTime)}</td>
-          <td>${formatTime(task.endTime)}</td>
-          <td class="status">❌ INCUMPLIDA</td>
-        </tr>
-      `
-    })
-    
-    html += `
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `
-    return html
-  }
-  
-  const exportReport = () => {
-    const html = generateReportHTML()
-    const blob = new Blob([html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `reporte_incumplimientos_${currentTime.toISOString().split('T')[0]}.html`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-  
-  const copyToClipboard = () => {
-    const text = violatedTasks.map(task => 
-      `• ${task.title} | Prioridad: ${task.priority} | Fecha: ${formatDate(task.date)} | Horario: ${formatTime(task.startTime)} - ${formatTime(task.endTime)} | Estado: INCUMPLIDA`
-    ).join('\n')
-    navigator.clipboard.writeText(`REPORTE DE INCUMPLIMIENTOS\nGenerado: ${currentTime.toLocaleString('es-ES')}\n\n${text}`)
-  }
+  }, [tasks])
   
   const getOverdueTime = (task) => {
     if (!task.date || !task.endTime) return null
@@ -838,122 +635,22 @@ const EnhancedReportModal = ({ tasks, onClose }) => {
           </div>
         </div>
         
-        <div className="report-controls">
-          <div className="controls-row">
-            <div className="auto-refresh-control">
-              <label className="control-label">
-                <input 
-                  type="checkbox" 
-                  checked={autoRefresh} 
-                  onChange={(e) => setAutoRefresh(e.target.checked)}
-                />
-                <span>Auto-refresh</span>
-              </label>
-              <select 
-                value={refreshInterval} 
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
-                disabled={!autoRefresh}
-                className="interval-select"
-              >
-                <option value={1}>1 min</option>
-                <option value={5}>5 min</option>
-                <option value={10}>10 min</option>
-                <option value={15}>15 min</option>
-                <option value={30}>30 min</option>
-              </select>
-            </div>
-            
-            <div className="filter-control">
-              <button 
-                className={`filter-toggle ${showFilters ? 'active' : ''}`}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                🔍 Filtros {showFilters ? '▲' : '▼'}
-              </button>
-              {showFilters && (
-                <div className="filter-dropdown">
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="priority" 
-                      value="all" 
-                      checked={priorityFilter === 'all'}
-                      onChange={() => setPriorityFilter('all')}
-                    />
-                    Todas
-                  </label>
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="priority" 
-                      value="alta" 
-                      checked={priorityFilter === 'alta'}
-                      onChange={() => setPriorityFilter('alta')}
-                    />
-                    🔴 Alta
-                  </label>
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="priority" 
-                      value="media" 
-                      checked={priorityFilter === 'media'}
-                      onChange={() => setPriorityFilter('media')}
-                    />
-                    🟡 Media
-                  </label>
-                  <label>
-                    <input 
-                      type="radio" 
-                      name="priority" 
-                      value="baja" 
-                      checked={priorityFilter === 'baja'}
-                      onChange={() => setPriorityFilter('baja')}
-                    />
-                    🟢 Baja
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        
         {violatedTasks.length > 0 ? (
           <div className="report-table-container">
             <table className="report-table">
               <thead>
-                <tr>
-                  <th>Prioridad</th>
-                  <th>Tarea</th>
-                  <th>Fecha</th>
-                  <th>Horario</th>
-                  <th>Tiempo Vencido</th>
-                  <th>Estado</th>
-                </tr>
+                <tr><th>Prioridad</th><th>Tarea</th><th>Fecha</th><th>Horario</th><th>Tiempo Vencido</th><th>Estado</th></tr>
               </thead>
               <tbody>
                 {violatedTasks.map(task => {
                   const overdueTime = getOverdueTime(task)
                   return (
                     <tr key={task.id} className={`priority-row ${task.priority}`}>
-                      <td>
-                        <span className={`priority-badge ${task.priority}`}>
-                          {task.priority === 'alta' && '🔴'}
-                          {task.priority === 'media' && '🟡'}
-                          {task.priority === 'baja' && '🟢'}
-                          {task.priority}
-                        </span>
-                      </td>
+                      <td><span className={`priority-badge ${task.priority}`}>{task.priority === 'alta' && '🔴'}{task.priority === 'media' && '🟡'}{task.priority === 'baja' && '🟢'}{task.priority}</span></td>
                       <td>{task.title}</td>
                       <td>{formatDate(task.date)}</td>
                       <td>{formatTime(task.startTime)} - {formatTime(task.endTime)}</td>
-                      <td className="overdue-time">
-                        {overdueTime && (
-                          <span className="overdue-badge">
-                            ⏰ {overdueTime.text}
-                          </span>
-                        )}
-                      </td>
+                      <td className="overdue-time">{overdueTime && <span className="overdue-badge">⏰ {overdueTime.text}</span>}</td>
                       <td className="status-violated">❌ INCUMPLIDA</td>
                     </tr>
                   )
@@ -962,21 +659,8 @@ const EnhancedReportModal = ({ tasks, onClose }) => {
             </table>
           </div>
         ) : (
-          <div className="no-violations">
-            <span className="checkmark">🎉</span>
-            <p>¡No hay tareas incumplidas!</p>
-            <p className="subtext">Todas las tareas con hora de fin pasada han sido completadas.</p>
-          </div>
+          <div className="no-violations"><span className="checkmark">🎉</span><p>¡No hay tareas incumplidas!</p></div>
         )}
-        
-        <div className="report-actions">
-          <button onClick={exportReport} className="export-btn" disabled={violatedTasks.length === 0}>
-            📥 Exportar HTML
-          </button>
-          <button onClick={copyToClipboard} className="copy-btn" disabled={violatedTasks.length === 0}>
-            📋 Copiar al portapapeles
-          </button>
-        </div>
       </div>
     </div>
   )
@@ -988,9 +672,7 @@ const STORAGE_KEY_TASKS = 'todo_tasks'
 const STORAGE_KEY_LISTS = 'todo_lists'
 const STORAGE_KEY_LAST_ID_TASK = 'todo_last_id_task'
 const STORAGE_KEY_LAST_ID_LIST = 'todo_last_id_list'
-const STORAGE_KEY_SCHEDULED_TASKS = 'todo_scheduled_tasks'
 
-// Cargar desde localStorage
 const loadFromStorage = (key, defaultValue) => {
   try {
     const saved = localStorage.getItem(key)
@@ -1001,7 +683,6 @@ const loadFromStorage = (key, defaultValue) => {
   }
 }
 
-// Guardar en localStorage
 const saveToStorage = (key, value) => {
   try {
     localStorage.setItem(key, JSON.stringify(value))
@@ -1010,7 +691,6 @@ const saveToStorage = (key, value) => {
   }
 }
 
-// Generar ID único
 const generateId = (key) => {
   const lastId = parseInt(localStorage.getItem(key) || '0', 10)
   const newId = lastId + 1
@@ -1018,22 +698,17 @@ const generateId = (key) => {
   return newId
 }
 
-// Inicializar contadores si no existen
 const initializeIds = (existingLists = []) => {
   if (!localStorage.getItem(STORAGE_KEY_LAST_ID_TASK)) {
     localStorage.setItem(STORAGE_KEY_LAST_ID_TASK, '1')
   }
-  
-  // Calcular el siguiente ID basado en las listas existentes
   let maxListId = 1
   existingLists.forEach(list => {
     if (list.id > maxListId) maxListId = list.id
   })
-  
   if (!localStorage.getItem(STORAGE_KEY_LAST_ID_LIST)) {
     localStorage.setItem(STORAGE_KEY_LAST_ID_LIST, maxListId.toString())
   } else {
-    // Asegurarse de que el contador no sea menor que el máximo existente
     const currentLastId = parseInt(localStorage.getItem(STORAGE_KEY_LAST_ID_LIST), 10)
     if (currentLastId < maxListId) {
       localStorage.setItem(STORAGE_KEY_LAST_ID_LIST, maxListId.toString())
@@ -1044,17 +719,14 @@ const initializeIds = (existingLists = []) => {
 // ================= COMPONENTE PRINCIPAL APP =================
 
 function App() {
-  // Cargar listas iniciales
   const initialLists = loadFromStorage(STORAGE_KEY_LISTS, [
     { id: 1, name: 'Tareas Generales', color: '#3498db' }
   ])
   
-  // Inicializar contadores al iniciar
   initializeIds(initialLists)
   
   const [tasks, setTasks] = useState(() => loadFromStorage(STORAGE_KEY_TASKS, []))
   const [lists, setLists] = useState(initialLists)
-  const [scheduledTasks, setScheduledTasks] = useState(() => loadFromStorage(STORAGE_KEY_SCHEDULED_TASKS, []))
   const [selectedList, setSelectedList] = useState(1)
   const [newListName, setNewListName] = useState('')
   const [newListColor, setNewListColor] = useState('#3498db')
@@ -1065,8 +737,6 @@ function App() {
   const [newTaskDate, setNewTaskDate] = useState('')
   const [newTaskStartTime, setNewTaskStartTime] = useState('')
   const [newTaskEndTime, setNewTaskEndTime] = useState('')
-  const [newTaskScheduled, setNewTaskScheduled] = useState(false)
-  const [newTaskScheduledDate, setNewTaskScheduledDate] = useState('')
   const [editingTask, setEditingTask] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
@@ -1084,107 +754,135 @@ function App() {
   const [liveClock, setLiveClock] = useState(new Date())
   const [showScheduledOnly, setShowScheduledOnly] = useState(false)
   
-  // Reloj en tiempo real para actualizar estados de tareas
+  // Reloj en tiempo real
   useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveClock(new Date())
-    }, 60000) // Actualizar cada minuto
+    const timer = setInterval(() => setLiveClock(new Date()), 60000)
     return () => clearInterval(timer)
   }, [])
 
-  // Persistir tareas en localStorage cada vez que cambien
+  // ================= FUNCIÓN CRÍTICA: Mover tareas programadas a Tareas Generales =================
+  const moveScheduledTasksToGeneral = () => {
+    const today = new Date().toISOString().split('T')[0]
+    let movedCount = 0
+    const movedTasks = []
+    
+    setTasks(prevTasks => {
+      const updatedTasks = prevTasks.map(task => {
+        // Verificar si la tarea está programada y su fecha ha llegado
+        if (task.isScheduled && task.scheduledFor && task.scheduledFor <= today) {
+          movedCount++
+          movedTasks.push(task.title)
+          return {
+            ...task,
+            isScheduled: false,
+            scheduledFor: null,
+            list_id: 1  // Mover a Tareas Generales
+          }
+        }
+        return task
+      })
+      
+      // Mostrar notificaciones de tareas movidas
+      if (movedTasks.length > 0) {
+        setTimeout(() => {
+          showNotification(`📅 ${movedTasks.length} tarea(s) programada(s) llegaron a su fecha y están disponibles en "Tareas Generales"`, 'info')
+        }, 100)
+      }
+      
+      return updatedTasks
+    })
+  }
+  
+  // Ejecutar al cargar la app y cada hora
+  useEffect(() => {
+    moveScheduledTasksToGeneral()
+    const interval = setInterval(moveScheduledTasksToGeneral, 3600000) // Cada hora
+    return () => clearInterval(interval)
+  }, [])
+  
+  // También ejecutar cuando cambien las tareas (por si se agregan nuevas)
+  useEffect(() => {
+    moveScheduledTasksToGeneral()
+  }, [tasks.length])
+
   useEffect(() => {
     saveToStorage(STORAGE_KEY_TASKS, tasks)
   }, [tasks])
   
-  // Persistir listas en localStorage cada vez que cambien
   useEffect(() => {
     saveToStorage(STORAGE_KEY_LISTS, lists)
   }, [lists])
   
-  // Persistir tareas programadas en localStorage cada vez que cambien
-  useEffect(() => {
-    saveToStorage(STORAGE_KEY_SCHEDULED_TASKS, scheduledTasks)
-  }, [scheduledTasks])
-  
-  // Revisar tareas programadas y moverlas a Tareas Generales cuando llegue su fecha
-  useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]
-    
-    const tasksToActivate = scheduledTasks.filter(st => st.scheduledDate <= today)
-    
-    if (tasksToActivate.length > 0) {
-      setTasks(prev => prev.map(t => {
-        const shouldActivate = tasksToActivate.some(st => st.taskId === t.id && t.isScheduled && t.scheduledFor <= today)
-        if (shouldActivate) {
-          return { ...t, isScheduled: false, scheduledFor: null }
-        }
-        return t
-      }))
-    }
-  }, [scheduledTasks])
-  
-  // Mostrar notificación
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 4000)
   }
   
-  // Filtrar tareas por lista seleccionada
-  const listTasks = useMemo(() => {
-    if (showScheduledOnly) {
-      return tasks.filter(t => scheduledTasks.some(st => st.taskId === t.id))
-    }
-    const today = new Date().toISOString().split('T')[0]
-    return tasks.filter(t => {
-      // Si es una tarea programada y aún no ha llegado su fecha, no mostrarla en la lista
-      if (t.isScheduled && t.scheduledFor && t.scheduledFor > today) {
-        return false
-      }
-      return t.list_id === selectedList
+  // ================= TAREAS A MOSTRAR (con filtro de programadas) =================
+ const displayedTasks = useMemo(() => {
+  const today = new Date().toISOString().split('T')[0]
+  
+  // Si estamos en modo "Tareas Programadas"
+  if (showScheduledOnly) {
+    return tasks
+      .filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today)
+      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
+  }
+  
+  // Modo normal: filtrar por lista seleccionada
+  let result = tasks.filter(t => t.list_id === selectedList)
+  
+  // 🔥 NUEVO: Si hay una fecha seleccionada en el calendario
+  if (selectedDate) {
+    const dateStr = selectedDate.toISOString().split('T')[0]
+    result = result.filter(t => t.date === dateStr)
+    // ✅ AHORA SÍ muestra tareas programadas si su fecha coincide
+    // (aunque isScheduled = true y scheduledFor sea futuro)
+  } else {
+    // Si NO hay fecha seleccionada, ocultar tareas programadas futuras
+    result = result.filter(t => {
+      // Mostrar tareas normales
+      if (!t.isScheduled) return true
+      // Mostrar tareas programadas que YA llegaron a su fecha
+      if (t.isScheduled && t.scheduledFor && t.scheduledFor <= today) return true
+      // Ocultar tareas programadas para fechas futuras
+      return false
     })
-  }, [tasks, selectedList, showScheduledOnly, scheduledTasks])
-
-  // Obtener tareas programadas que ya están vigentes (llegó su fecha)
-  const activeScheduledTasks = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
-    return scheduledTasks.filter(st => st.scheduledDate <= today)
-  }, [scheduledTasks])
+  }
   
-  // Estadísticas basadas en tareas de la lista actual
+  // Aplicar filtros adicionales (pendientes, completadas, etc.)
+  if (filter === 'pendientes') {
+    result = result.filter(t => !t.completed)
+  } else if (filter === 'completadas') {
+    result = result.filter(t => t.completed)
+  } else if (filter === 'vencidas') {
+    result = result.filter(t => isTaskOverdue(t))
+  } else if (filter === 'urgentes') {
+    result = result.filter(t => isTaskUrgent(t))
+  }
+  
+  return result
+}, [tasks, selectedList, filter, selectedDate, showScheduledOnly])
+  
+  // Estadísticas
   const stats = useMemo(() => {
-    const total = listTasks.length
-    const completadas = listTasks.filter(t => t.completed).length
+    const today = new Date().toISOString().split('T')[0]
+    const activeTasks = tasks.filter(t => !(t.isScheduled && t.scheduledFor && t.scheduledFor > today))
+    const listActiveTasks = activeTasks.filter(t => t.list_id === selectedList)
+    const total = listActiveTasks.length
+    const completadas = listActiveTasks.filter(t => t.completed).length
     const pendientes = total - completadas
-    const conFecha = listTasks.filter(t => t.date).length
-    const incumplidas = listTasks.filter(t => isTaskOverdue(t)).length
-    const urgentes = listTasks.filter(t => isTaskUrgent(t)).length
-    return { total, completadas, pendientes, conFecha, incumplidas, urgentes }
-  }, [listTasks, liveClock])
+    const conFecha = listActiveTasks.filter(t => t.date).length
+    const incumplidas = listActiveTasks.filter(t => isTaskOverdue(t)).length
+    const urgentes = listActiveTasks.filter(t => isTaskUrgent(t)).length
+    // Tareas programadas futuras
+    const scheduledCount = tasks.filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today).length
+    return { total, completadas, pendientes, conFecha, incumplidas, urgentes, scheduledCount }
+  }, [tasks, selectedList, liveClock])
+
   
-  // Filtrar tareas de la lista actual
-  const filteredTasks = useMemo(() => {
-    let result = listTasks
-    
-    if (selectedDate) {
-      const dateStr = selectedDate.toISOString().split('T')[0]
-      result = result.filter(t => t.date === dateStr)
-    }
-    
-    if (filter === 'pendientes') {
-      result = result.filter(t => !t.completed)
-    } else if (filter === 'completadas') {
-      result = result.filter(t => t.completed)
-    } else if (filter === 'vencidas') {
-      result = result.filter(t => isTaskOverdue(t))
-    } else if (filter === 'urgentes') {
-      result = result.filter(t => isTaskUrgent(t))
-    }
-    
-    return result
-  }, [listTasks, filter, selectedDate, liveClock])
   
-  // ================= VALIDACIONES MEJORADAS =================
+  // ================= VALIDACIONES =================
   
   const validarCrearLista = () => {
     if (!newListName.trim()) {
@@ -1211,37 +909,17 @@ function App() {
       showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
       return false
     }
-    // Validar que la fecha no sea anterior a hoy
     if (newTaskDate) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      const selectedDate = new Date(newTaskDate + 'T00:00:00')
-      if (selectedDate < today) {
+      const selectedDateObj = new Date(newTaskDate + 'T00:00:00')
+      if (selectedDateObj < today) {
         showNotification('⚠️ No se puede seleccionar una fecha anterior a la actual', 'error')
         return false
       }
     }
-    // Validar que la hora no sea anterior a la actual si es la misma fecha
-    if (newTaskDate && newTaskStartTime) {
-      const today = new Date().toISOString().split('T')[0]
-      if (newTaskDate === today) {
-        const now = new Date()
-        const currentHours = String(now.getHours()).padStart(2, '0')
-        const currentMinutes = String(now.getMinutes()).padStart(2, '0')
-        const currentTime = `${currentHours}:${currentMinutes}`
-        if (newTaskStartTime < currentTime) {
-          showNotification('⚠️ No se puede seleccionar una hora anterior a la actual', 'error')
-          return false
-        }
-      }
-    }
     if (newTaskStartTime && newTaskEndTime && !isValidTimeRange(newTaskStartTime, newTaskEndTime)) {
       showNotification('⚠️ La hora de fin debe ser posterior a la hora de inicio', 'error')
-      return false
-    }
-    const regexSoloLetrasYEspacios = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/
-    if (!regexSoloLetrasYEspacios.test(newTaskTitle.trim())) {
-      showNotification('⚠️ El título solo puede contener letras y espacios', 'error')
       return false
     }
     return true
@@ -1260,88 +938,38 @@ function App() {
       showNotification('⚠️ La descripción no puede exceder los 100 caracteres', 'error')
       return false
     }
-    // Validar que la fecha no sea anterior a hoy
-    if (editDate) {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const selectedDate = new Date(editDate + 'T00:00:00')
-      if (selectedDate < today) {
-        showNotification('⚠️ No se puede seleccionar una fecha anterior a la actual', 'error')
-        return false
-      }
-    }
-    // Validar que la hora no sea anterior a la actual si es la misma fecha
-    if (editDate && editStartTime) {
-      const today = new Date().toISOString().split('T')[0]
-      if (editDate === today) {
-        const now = new Date()
-        const currentHours = String(now.getHours()).padStart(2, '0')
-        const currentMinutes = String(now.getMinutes()).padStart(2, '0')
-        const currentTime = `${currentHours}:${currentMinutes}`
-        if (editStartTime < currentTime) {
-          showNotification('⚠️ No se puede seleccionar una hora anterior a la actual', 'error')
-          return false
-        }
-      }
-    }
     if (editStartTime && editEndTime && !isValidTimeRange(editStartTime, editEndTime)) {
       showNotification('⚠️ La hora de fin debe ser posterior a la hora de inicio', 'error')
-      return false
-    }
-    const regexSoloLetrasYEspacios = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/
-    if (!regexSoloLetrasYEspacios.test(editTitle.trim())) {
-      showNotification('⚠️ El título solo puede contener letras y espacios', 'error')
       return false
     }
     return true
   }
   
-  // ================= FUNCIONES LOCALES =================
+  // ================= FUNCIONES CRUD =================
   
-  // Crear nueva lista
   const crearLista = () => {
     if (!validarCrearLista()) return
     
     const newListId = generateId(STORAGE_KEY_LAST_ID_LIST)
-    
-    const newList = {
-      id: newListId,
-      name: newListName,
-      color: newListColor
-    }
+    const newList = { id: newListId, name: newListName, color: newListColor }
     
     setLists(prev => [...prev, newList])
     setNewListName('')
-    setNewListColor('#3498db')
     showNotification('✅ Lista creada exitosamente', 'success')
   }
   
-  // Eliminar lista
-  const confirmarEliminarLista = (id) => {
+  const eliminarLista = (id) => {
     if (id === 1) {
       showNotification('⚠️ No se puede eliminar la lista principal', 'error')
       return
     }
-    setDeleteListModal(id)
-  }
-  
-  const eliminarLista = () => {
-    if (!deleteListModal) return
-    
-    // Eliminar tareas de esa lista
-    setTasks(prev => prev.filter(t => t.list_id !== deleteListModal))
-    // Eliminar la lista
-    setLists(prev => prev.filter(l => l.id !== deleteListModal))
-    setDeleteListModal(null)
-    setSelectedList(1)
+    setTasks(prev => prev.filter(t => t.list_id !== id))
+    setLists(prev => prev.filter(l => l.id !== id))
+    if (selectedList === id) setSelectedList(1)
     showNotification('✅ Lista eliminada exitosamente', 'success')
-  }
-  
-  const cancelarEliminarLista = () => {
     setDeleteListModal(null)
   }
   
-  // Abrir/cerrar modal
   const openModal = () => {
     setNewTaskTitle('')
     setNewTaskDesc('')
@@ -1349,16 +977,11 @@ function App() {
     setNewTaskDate('')
     setNewTaskStartTime('')
     setNewTaskEndTime('')
-    setNewTaskScheduled(false)
-    setNewTaskScheduledDate('')
     setShowModal(true)
   }
   
-  const closeModal = () => {
-    setShowModal(false)
-  }
+  const closeModal = () => setShowModal(false)
   
-  // Agregar nueva tarea
   const agregarTarea = () => {
     if (!validarCrearTarea()) return
     
@@ -1380,68 +1003,30 @@ function App() {
       scheduledFor: isFutureTask ? newTaskDate : null
     }
     
-    const newTasks = [...tasks, newTask]
-    setTasks(newTasks)
+    setTasks(prev => [...prev, newTask])
     
     if (isFutureTask) {
-      const scheduledTask = {
-        taskId: newTask.id,
-        scheduledDate: newTaskDate,
-        addedAt: new Date().toISOString()
-      }
-      setScheduledTasks(prev => [...prev, scheduledTask])
-      showNotification('✅ Tarea programada para ' + formatDate(newTaskDate), 'success')
-    } else if (newTaskScheduled && newTaskScheduledDate) {
-      const scheduledTask = {
-        taskId: newTask.id,
-        scheduledDate: newTaskScheduledDate,
-        addedAt: new Date().toISOString()
-      }
-      setScheduledTasks(prev => [...prev, scheduledTask])
-      showNotification('✅ Tarea creada y programada para ' + formatDate(newTaskScheduledDate), 'success')
+      showNotification(`📅 Tarea programada para ${formatDate(newTaskDate)}. Aparecerá en "Tareas Programadas"`, 'info')
     } else {
       showNotification('✅ Tarea creada exitosamente', 'success')
     }
     
-    setNewTaskTitle('')
-    setNewTaskDesc('')
-    setNewTaskPriority('baja')
-    setNewTaskDate('')
-    setNewTaskStartTime('')
-    setNewTaskEndTime('')
-    setNewTaskScheduled(false)
-    setNewTaskScheduledDate('')
-    setShowModal(false)
+    closeModal()
   }
   
-  // Eliminar tarea
-  const confirmarEliminarTarea = (id) => {
-    setDeleteModalTask(id)
-  }
-  
-  const eliminarTarea = () => {
-    if (!deleteModalTask) return
-    
-    setTasks(prev => prev.filter(t => t.id !== deleteModalTask))
+  const eliminarTarea = (id) => {
+    setTasks(prev => prev.filter(t => t.id !== id))
     setDeleteModalTask(null)
     showNotification('✅ Tarea eliminada exitosamente', 'success')
   }
   
-  const cancelarEliminarTarea = () => {
-    setDeleteModalTask(null)
-  }
-  
-  // Completar/descompletar tarea
   const completarTarea = (task) => {
     setTasks(prev => prev.map(t => 
       t.id === task.id ? { ...t, completed: !t.completed } : t
     ))
-    if (!task.completed) {
-      showNotification('🎉 ¡Tarea completada!', 'success')
-    }
+    if (!task.completed) showNotification('🎉 ¡Tarea completada!', 'success')
   }
   
-  // Iniciar edición
   const iniciarEditar = (task) => {
     setEditingTask(task.id)
     setEditTitle(task.title)
@@ -1452,7 +1037,6 @@ function App() {
     setEditEndTime(task.endTime || '')
   }
   
-  // Guardar edición
   const guardarEdicion = (id) => {
     if (!validarEditarTarea()) return
     
@@ -1468,43 +1052,67 @@ function App() {
       } : t
     ))
     setEditingTask(null)
-    setEditTitle('')
-    setEditDesc('')
-    setEditPriority('baja')
-    setEditDate('')
-    setEditStartTime('')
-    setEditEndTime('')
     showNotification('✅ Tarea actualizada exitosamente', 'success')
   }
   
-  // Cancelar edición
-  const cancelarEdicion = () => {
-    setEditingTask(null)
-    setEditTitle('')
-    setEditDesc('')
-    setEditPriority('baja')
-    setEditDate('')
-    setEditStartTime('')
-    setEditEndTime('')
+  const cancelarEdicion = () => setEditingTask(null)
+  
+  
+// Función para manejar clic en fecha del calendario
+const handleDateSelect = (date) => {
+  // Cerrar el calendario
+  setShowCalendar(false)
+  
+  // Salir del modo "Tareas Programadas" si estaba activo
+  setShowScheduledOnly(false)
+  
+  // Limpiar cualquier filtro anterior
+  setFilter('todas')
+  
+  // GUARDAR LA FECHA SELECCIONADA (esto es lo que activa el filtro)
+  setSelectedDate(date)
+  
+  // Obtener la fecha en formato string para comparar
+  const dateStr = date.toISOString().split('T')[0]
+  
+  // Buscar tareas en esa fecha
+  const tasksOnDate = tasks.filter(t => t.date === dateStr)
+  
+  if (tasksOnDate.length > 0) {
+    // Cambiar a la lista donde está la primera tarea
+    setSelectedList(tasksOnDate[0].list_id)
+    showNotification(`📅 Mostrando ${tasksOnDate.length} tarea(s) del ${formatDate(dateStr)}`, 'info')
+  } else {
+    showNotification(`📅 No hay tareas para el ${formatDate(dateStr)}`, 'info')
   }
   
-  // Seleccionar fecha del calendario
-  const handleDateSelect = (date) => {
-    if (selectedDate && date.toDateString() === selectedDate.toDateString()) {
-      setSelectedDate(null)
-    } else {
-      setSelectedDate(date)
+  // Scroll a la lista de tareas
+  setTimeout(() => {
+    const tasksContainer = document.getElementById('listatareas')
+    if (tasksContainer) {
+      tasksContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  }
+  }, 200)
+}
   
-  const clearDateFilter = () => {
+  const clearDateFilter = () => setSelectedDate(null)
+  
+  // Mostrar tareas programadas
+  const showScheduledTasksList = () => {
+    setShowScheduledOnly(true)
+    setSelectedList(null)
+    setFilter('todas')
     setSelectedDate(null)
   }
   
-  // Obtener nombre de la lista actual
+  // Mostrar lista normal
+  const showNormalList = (listId) => {
+    setShowScheduledOnly(false)
+    setSelectedList(listId)
+  }
+  
   const listaActual = lists.find(l => l.id === selectedList)
   
-  // Obtener tiempo restante para una tarea
   const getTimeInfo = (task) => {
     if (!task.date || !task.endTime || task.completed) return null
     return formatTimeRemaining(task.date, task.endTime)
@@ -1512,24 +1120,25 @@ function App() {
   
   return (
     <>
-      {/* Sistema de Notificaciones Mejorado */}
       <EnhancedNotificationSystem 
         tasks={tasks}
         onTaskClick={(task) => {
-          const taskElement = document.querySelector(`[data-task-id="${task.id}"]`)
-          if (taskElement) {
-            taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            taskElement.classList.add('highlight-task')
-            setTimeout(() => taskElement.classList.remove('highlight-task'), 2000)
-          }
+          setShowScheduledOnly(false)
+          setSelectedList(task.list_id)
+          setTimeout(() => {
+            const taskElement = document.querySelector(`[data-task-id="${task.id}"]`)
+            if (taskElement) {
+              taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              taskElement.classList.add('highlight-task')
+              setTimeout(() => taskElement.classList.remove('highlight-task'), 2000)
+            }
+          }, 100)
         }}
       />
       
-      {/* Barra lateral */}
       <aside className="sidebar">
         <h2>📋 Mis Listas</h2>
         
-        {/* Formulario para nueva lista */}
         <div className="formulario-lista">
           <div className="input-list-container">
             <input 
@@ -1543,268 +1152,163 @@ function App() {
             <span className="char-counter-list">{newListName.length}/20</span>
           </div>
           <div className="list-inputs-right">
-            <input 
-              type="color" 
-              value={newListColor}
-              onChange={(e) => setNewListColor(e.target.value)}
-            />
+            <input type="color" value={newListColor} onChange={(e) => setNewListColor(e.target.value)} />
             <button onClick={crearLista} className="boton-agregar-lista">+</button>
           </div>
         </div>
         
-        {/* Contenedor de listas */}
         <div className="contenedor-listas">
           {lists.map(list => (
             <div 
               key={list.id} 
-              className={`lista-item ${selectedList === list.id ? 'lista-activa' : ''}`}
-              onClick={() => {
-                setSelectedList(list.id)
-                setShowScheduledOnly(false)
-              }}
+              className={`lista-item ${!showScheduledOnly && selectedList === list.id ? 'lista-activa' : ''}`}
+              onClick={() => showNormalList(list.id)}
             >
-              <div 
-                className="lista-contenido" 
-                style={{ borderLeftColor: list.color }}
-              >
+              <div className="lista-contenido" style={{ borderLeftColor: list.color }}>
                 <span className="lista-nombre">{list.name}</span>
               </div>
               {list.id !== 1 && (
-                <button 
-                  className="boton-eliminar-lista"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    confirmarEliminarLista(list.id)
-                  }}
-                  title="Eliminar lista"
-                >
-                  🗑️
-                </button>
+                <button className="boton-eliminar-lista" onClick={(e) => {
+                  e.stopPropagation()
+                  setDeleteListModal(list.id)
+                }}>🗑️</button>
               )}
             </div>
           ))}
         </div>
         
-        {/* Sección de Calendario */}
-        <div className="calendar-sidebar-section">
+        {/* Botón Tareas Programadas MEJORADO */}
+        <div className="scheduled-sidebar-section">
           <button 
-            className={`calendar-toggle-btn ${showCalendar ? 'active' : ''}`}
-            onClick={() => setShowCalendar(!showCalendar)}
+            className={`scheduled-btn ${showScheduledOnly ? 'active' : ''}`}
+            onClick={showScheduledTasksList}
+            title="Ver todas las tareas programadas para fechas futuras"
           >
+            📆 Tareas Programadas
+            {stats.scheduledCount > 0 && (
+              <span className="scheduled-badge">{stats.scheduledCount}</span>
+            )}
+          </button>
+        </div>
+        
+        <div className="calendar-sidebar-section">
+          <button className={`calendar-toggle-btn ${showCalendar ? 'active' : ''}`} onClick={() => setShowCalendar(!showCalendar)}>
             📅 {showCalendar ? 'Ocultar Calendario' : 'Ver Calendario'}
           </button>
         </div>
         
-        {/* Sección de Tareas Programadas */}
-        <div className="scheduled-sidebar-section">
-          <button 
-            className="scheduled-btn"
-            onClick={() => {
-              setSelectedList(1)
-              setShowScheduledOnly(true)
-              setFilter('todas')
-            }}
-            title="Ver tareas programadas"
-          >
-            📆 Tareas Programadas
-            {(() => {
-              const today = new Date().toISOString().split('T')[0]
-              const pendingScheduled = scheduledTasks.filter(st => st.scheduledDate > today).length
-              return pendingScheduled > 0 ? (
-                <span className="scheduled-badge">{pendingScheduled}</span>
-              ) : null
-            })()}
+        <div className="reports-sidebar-section">
+          <button className="report-btn" onClick={() => setShowReport(true)}>
+            📊 Generar Reporte
           </button>
         </div>
         
-        {/* Widget de reloj */}
         <div className="clock-widget">
-          <div className="clock-time">
-            {liveClock.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-          </div>
-          <div className="clock-date">
-            {liveClock.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-          </div>
+          <div className="clock-time">{liveClock.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
+          <div className="clock-date">{liveClock.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
         </div>
       </aside>
       
-      {/* Contenido principal */}
       <main className="contenido-principal">
-        {/* Header con título, filtros y stats */}
         <div className="content-header">
-          <h1>📋 {listaActual?.name || 'Lista de Tareas'}</h1>
+          <h1>
+  📋 {showScheduledOnly ? '📆 Tareas Programadas' : (listaActual?.name || 'Lista de Tareas')}
+  
+  {/* Badge de fecha seleccionada */}
+  {selectedDate && (
+    <span className="date-filter-badge">
+      📅 {formatDate(selectedDate.toISOString().split('T')[0])}
+    </span>
+  )}
+  
+  {/* Botón para limpiar filtro de fecha (opcional, junto al badge) */}
+  {selectedDate && (
+    <button 
+      className="clear-date-badge" 
+      onClick={clearDateFilter}
+      title="Limpiar filtro de fecha"
+    >
+      ✖️
+    </button>
+  )}
+</h1>
           
           <div className="controls-row">
-            {/* Filtros */}
             <div className="filtros">
-              <button 
-                className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`}
-                onClick={() => setFilter('todas')}
-              >
-                📃 Todas
-              </button>
-              <button 
-                className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`}
-                onClick={() => setFilter('pendientes')}
-              >
-                📝 Pendientes
-              </button>
-              <button 
-                className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`}
-                onClick={() => setFilter('completadas')}
-              >
-                ✅ Completadas
-              </button>
-              <button 
-                className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`}
-                onClick={() => setFilter('vencidas')}
-              >
-                ⏰ Vencidas
-              </button>
-              <button 
-                className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`}
-                onClick={() => setFilter('urgentes')}
-              >
-                ⚡ Urgentes
-              </button>
+              <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
+              <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
+              <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
+              <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
+              <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
             </div>
             
-            {/* Stats badges */}
             <div className="stats-badges">
-              <div className="stat-badge pending">
-                📝 {stats.pendientes}
-              </div>
-              <div className="stat-badge completed">
-                ✅ {stats.completadas}
-              </div>
-              {stats.conFecha > 0 && (
-                <div className="stat-badge scheduled">
-                  📅 {stats.conFecha}
-                </div>
-              )}
-              {stats.urgentes > 0 && (
-                <div className="stat-badge urgent">
-                  ⚡ {stats.urgentes}
-                </div>
-              )}
-              {stats.incumplidas > 0 && (
-                <div className="stat-badge violated">
-                  ⏰ {stats.incumplidas}
-                </div>
-              )}
+              <div className="stat-badge pending">📝 {stats.pendientes}</div>
+              <div className="stat-badge completed">✅ {stats.completadas}</div>
+              {stats.conFecha > 0 && <div className="stat-badge scheduled">📅 {stats.conFecha}</div>}
+              {stats.urgentes > 0 && <div className="stat-badge urgent">⚡ {stats.urgentes}</div>}
+              {stats.incumplidas > 0 && <div className="stat-badge violated">⏰ {stats.incumplidas}</div>}
             </div>
           </div>
         </div>
+        <div className="filtros">
+  <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
+  <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
+  <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
+  <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
+  <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
+  
+  {/* 👇 BOTÓN PARA LIMPIAR FECHA - Aparece SOLO si hay fecha seleccionada */}
+  {selectedDate && (
+    <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
+      ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
+    </button>
+  )}
+</div>
         
-        {/* Calendario Modal */}
         {showCalendar && (
-          <EnhancedCalendar 
-            tasks={tasks} 
-            onSelectDate={handleDateSelect}
-            selectedDate={selectedDate}
-            onClose={() => setShowCalendar(false)}
-          />
+          <EnhancedCalendar tasks={tasks} onSelectDate={handleDateSelect} selectedDate={selectedDate} onClose={() => setShowCalendar(false)} />
         )}
         
-        {/* Lista de tareas */}
         <ul id="listatareas">
-          {filteredTasks.length === 0 ? (
+          {displayedTasks.length === 0 ? (
             <li className="sin-tareas">
               <span>📭</span>
-              {selectedDate 
-                ? 'No hay tareas programadas para este día'
-                : filter === 'todas' 
-                ? 'No hay tareas en esta lista' 
-                : filter === 'pendientes'
-                ? '¡Todas las tareas están completadas!'
-                : filter === 'completadas'
-                ? 'No hay tareas completadas aún'
-                : filter === 'vencidas'
-                ? '¡No hay tareas vencidas!'
-                : filter === 'urgentes'
-                ? '¡No hay tareas urgentes!'
-                : 'No hay tareas'}
+              {showScheduledOnly ? 'No hay tareas programadas para fechas futuras' : 
+                selectedDate ? 'No hay tareas para este día' : 'No hay tareas en esta lista'}
             </li>
           ) : (
-            filteredTasks.map(task => {
+            displayedTasks.map(task => {
               const timeInfo = getTimeInfo(task)
               const isOverdue = isTaskOverdue(task)
               const isUrgent = isTaskUrgent(task)
               
               return (
-                <li 
-                  key={task.id}
-                  data-task-id={task.id}
-                  className={`tarea-item ${task.completed ? 'completada' : ''} ${isOverdue ? 'overdue' : ''} ${isUrgent ? 'urgent' : ''}`}
-                >
+                <li key={task.id} data-task-id={task.id} className={`tarea-item ${task.completed ? 'completada' : ''} ${isOverdue ? 'overdue' : ''} ${isUrgent ? 'urgent' : ''}`}>
                   {editingTask === task.id ? (
                     <div className="editar-tarea-form">
                       <div className="input-with-counter">
-                        <input
-                          type="text"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          maxLength={50}
-                          autoFocus
-                        />
+                        <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} maxLength={50} autoFocus />
                         <span className="char-counter">{editTitle.length}/50</span>
                       </div>
                       <div className="input-with-counter">
-                        <textarea
-                          value={editDesc}
-                          onChange={(e) => setEditDesc(e.target.value)}
-                          maxLength={100}
-                        />
+                        <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} maxLength={100} />
                         <span className="char-counter">{editDesc.length}/100</span>
                       </div>
-                      
-                      {/* Campos de fecha y hora en edición */}
                       <div className="datetime-inputs">
-                        <input
-                          type="date"
-                          value={editDate}
-                          onChange={(e) => setEditDate(e.target.value)}
-                          className="date-input"
-                          min={new Date().toISOString().split('T')[0]}
-                        />
-                        <input
-                          type="time"
-                          value={editStartTime}
-                          onChange={(e) => setEditStartTime(e.target.value)}
-                          className="time-input"
-                          placeholder="Inicio"
-                          min={editDate === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
-                          step="600"
-                        />
+                        <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="date-input" />
+                        <input type="time" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} className="time-input" placeholder="Inicio" />
                         <span className="time-separator">-</span>
-                        <input
-                          type="time"
-                          value={editEndTime}
-                          onChange={(e) => setEditEndTime(e.target.value)}
-                          className="time-input"
-                          placeholder="Fin"
-                          step="600"
-                        />
+                        <input type="time" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} className="time-input" placeholder="Fin" />
                       </div>
-                      {(editStartTime || editEndTime) && editStartTime && editEndTime && !isValidTimeRange(editStartTime, editEndTime) && (
-                        <span className="time-error">⚠️ La hora fin debe ser posterior</span>
-                      )}
-                      
-                      <select
-                        value={editPriority}
-                        onChange={(e) => setEditPriority(e.target.value)}
-                      >
+                      <select value={editPriority} onChange={(e) => setEditPriority(e.target.value)}>
                         <option value="baja">🟢 Prioridad Baja</option>
                         <option value="media">🟡 Prioridad Media</option>
                         <option value="alta">🔴 Prioridad Alta</option>
                       </select>
                       <div className="botones-edicion">
-                        <button className="guardar-btn" onClick={() => guardarEdicion(task.id)}>
-                          💾 Guardar
-                        </button>
-                        <button className="cancelar-btn" onClick={cancelarEdicion}>
-                          ✕ Cancelar
-                        </button>
+                        <button className="guardar-btn" onClick={() => guardarEdicion(task.id)}>💾 Guardar</button>
+                        <button className="cancelar-btn" onClick={cancelarEdicion}>✕ Cancelar</button>
                       </div>
                     </div>
                   ) : (
@@ -1812,66 +1316,36 @@ function App() {
                       <div className="tarea-contenido">
                         <span className="tarea-titulo">
                           {task.title}
-                          {task.priority === 'alta' && (
-                            <span className="prioridad prioridad-alta">🔴 Alta</span>
-                          )}
-                          {task.priority === 'media' && (
-                            <span className="prioridad prioridad-media">🟡 Media</span>
-                          )}
-                          {task.priority === 'baja' && (
-                            <span className="prioridad prioridad-baja">🟢 Baja</span>
-                          )}
-                          {isOverdue && (
-                            <span className="overdue-badge">⏰ VENCIDA</span>
-                          )}
-                          {isUrgent && !isOverdue && (
-                            <span className="urgent-badge">⚡ URGENTE</span>
+                          {task.priority === 'alta' && <span className="prioridad prioridad-alta">🔴 Alta</span>}
+                          {task.priority === 'media' && <span className="prioridad prioridad-media">🟡 Media</span>}
+                          {task.priority === 'baja' && <span className="prioridad prioridad-baja">🟢 Baja</span>}
+                          {isOverdue && <span className="overdue-badge">⏰ VENCIDA</span>}
+                          {isUrgent && !isOverdue && <span className="urgent-badge">⚡ URGENTE</span>}
+                          {task.isScheduled && task.scheduledFor && (
+                            <span className="scheduled-badge-task">📅 Programada: {formatDate(task.scheduledFor)}</span>
                           )}
                         </span>
-                        {task.description && (
-                          <span className="tarea-descripcion">{task.description}</span>
-                        )}
-                        {/* Mostrar fecha y hora si existen */}
+                        {task.description && <span className="tarea-descripcion">{task.description}</span>}
                         {(task.date || task.startTime || task.endTime) && (
                           <span className="tarea-datetime">
                             📅 {task.date ? formatDate(task.date) : 'Sin fecha'}
                             {(task.startTime || task.endTime) && (
-                              <span className="time-range">
-                                🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}
-                              </span>
+                              <span className="time-range">🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}</span>
                             )}
                           </span>
                         )}
-                        {/* Mostrar tiempo restante */}
                         {timeInfo && !task.completed && (
                           <span className={`time-remaining-badge ${timeInfo.overdue ? 'overdue' : timeInfo.urgent ? 'urgent' : ''}`}>
-                            {timeInfo.overdue ? '⏰ ' : '⏳ '}
-                            {timeInfo.text}
+                            {timeInfo.overdue ? '⏰ ' : '⏳ '}{timeInfo.text}
                           </span>
                         )}
                       </div>
                       <div className="botones-container">
-                        <button 
-                          className={`boton-completar ${task.completed ? 'completado' : ''}`}
-                          onClick={() => completarTarea(task)}
-                          title={task.completed ? 'Desmarcar' : 'Completar'}
-                        >
+                        <button className={`boton-completar ${task.completed ? 'completado' : ''}`} onClick={() => completarTarea(task)} title={task.completed ? 'Desmarcar' : 'Completar'}>
                           {task.completed ? '↩️' : '✓'}
                         </button>
-                        <button 
-                          className="boton-editar"
-                          onClick={() => iniciarEditar(task)}
-                          title="Editar"
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          className="boton-eliminar"
-                          onClick={() => confirmarEliminarTarea(task.id)}
-                          title="Eliminar"
-                        >
-                          🗑️
-                        </button>
+                        <button className="boton-editar" onClick={() => iniciarEditar(task)} title="Editar">✏️</button>
+                        <button className="boton-eliminar" onClick={() => setDeleteModalTask(task.id)} title="Eliminar">🗑️</button>
                       </div>
                     </div>
                   )}
@@ -1881,181 +1355,68 @@ function App() {
           )}
         </ul>
         
-        {/* Botón flotante para agregar tarea */}
-        <button className="floating-btn" onClick={openModal}>
-          +
-        </button>
+        <button className="floating-btn" onClick={openModal}>+</button>
         
-        {/* Modal para agregar tarea */}
+        {/* Modal Nueva Tarea */}
         <div className={`modal-overlay ${showModal ? 'active' : ''}`} onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>➕ Nueva Tarea</h3>
-              <button className="modal-close" onClick={closeModal}>✕</button>
-            </div>
+            <div className="modal-header"><h3>➕ Nueva Tarea</h3><button className="modal-close" onClick={closeModal}>✕</button></div>
             <div className="modal-form">
               <div className="input-with-counter">
-                <input 
-                  type="text" 
-                  placeholder="Título de la tarea"
-                  value={newTaskTitle}
-                  onChange={(e) => setNewTaskTitle(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && agregarTarea()}
-                  maxLength={50}
-                  autoFocus
-                />
+                <input type="text" placeholder="Título de la tarea" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} maxLength={50} autoFocus />
                 <span className="char-counter">{newTaskTitle.length}/50</span>
               </div>
               <div className="input-with-counter">
-                <textarea 
-                  placeholder="Descripción (opcional)"
-                  value={newTaskDesc}
-                  onChange={(e) => setNewTaskDesc(e.target.value)}
-                  maxLength={100}
-                />
+                <textarea placeholder="Descripción (opcional)" value={newTaskDesc} onChange={(e) => setNewTaskDesc(e.target.value)} maxLength={100} />
                 <span className="char-counter">{newTaskDesc.length}/100</span>
               </div>
-              
-              {/* Campos de fecha y hora */}
               <div className="datetime-inputs">
                 <label className="datetime-label">📅 Fecha:</label>
-                <input
-                  type="date"
-                  value={newTaskDate}
-                  onChange={(e) => setNewTaskDate(e.target.value)}
-                  className="date-input"
-                  min={new Date().toISOString().split('T')[0]}
-                />
+                <input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)} className="date-input" min={new Date().toISOString().split('T')[0]} />
               </div>
               <div className="datetime-inputs">
                 <label className="datetime-label">🕐 Horario:</label>
-                <input
-                  type="time"
-                  value={newTaskStartTime}
-                  onChange={(e) => setNewTaskStartTime(e.target.value)}
-                  className="time-input"
-                  placeholder="Inicio"
-                  min={newTaskDate === new Date().toISOString().split('T')[0] ? new Date().toTimeString().slice(0, 5) : undefined}
-                  step="600"
-                />
+                <input type="time" value={newTaskStartTime} onChange={(e) => setNewTaskStartTime(e.target.value)} className="time-input" placeholder="Inicio" />
                 <span className="time-separator">-</span>
-                <input
-                  type="time"
-                  value={newTaskEndTime}
-                  onChange={(e) => setNewTaskEndTime(e.target.value)}
-                  className="time-input"
-                  placeholder="Fin"
-                  step="600"
-                />
+                <input type="time" value={newTaskEndTime} onChange={(e) => setNewTaskEndTime(e.target.value)} className="time-input" placeholder="Fin" />
               </div>
-              {(newTaskStartTime || newTaskEndTime) && newTaskStartTime && newTaskEndTime && !isValidTimeRange(newTaskStartTime, newTaskEndTime) && (
-                <span className="time-error">⚠️ La hora de fin debe ser posterior a la hora de inicio</span>
-              )}
-              
-              <select
-                value={newTaskPriority}
-                onChange={(e) => setNewTaskPriority(e.target.value)}
-              >
+              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)}>
                 <option value="baja">🟢 Prioridad Baja</option>
                 <option value="media">🟡 Prioridad Media</option>
                 <option value="alta">🔴 Prioridad Alta</option>
               </select>
-              
-              {/* Opción de programar tarea para otra fecha */}
-              <div className="scheduled-option">
-                <label className="scheduled-checkbox">
-                  <input 
-                    type="checkbox" 
-                    checked={newTaskScheduled}
-                    onChange={(e) => {
-                      setNewTaskScheduled(e.target.checked)
-                      if (e.target.checked && !newTaskScheduledDate) {
-                        const tomorrow = new Date()
-                        tomorrow.setDate(tomorrow.getDate() + 1)
-                        setNewTaskScheduledDate(tomorrow.toISOString().split('T')[0])
-                      }
-                    }}
-                  />
-                  <span>📆 Programar para otra fecha</span>
-                </label>
-                {newTaskScheduled && (
-                  <div className="scheduled-date-input">
-                    <input
-                      type="date"
-                      value={newTaskScheduledDate}
-                      onChange={(e) => setNewTaskScheduledDate(e.target.value)}
-                      className="date-input"
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                )}
-              </div>
-              
-              <button className="modal-submit" onClick={agregarTarea}>
-                Agregar Tarea
-              </button>
+              <button className="modal-submit" onClick={agregarTarea}>Agregar Tarea</button>
             </div>
           </div>
         </div>
         
-        {/* Modal de confirmación para eliminar tarea */}
-        <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={cancelarEliminarTarea}>
+        {/* Modal Eliminar Tarea */}
+        <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={() => setDeleteModalTask(null)}>
           <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>⚠️ Confirmar Eliminación</h3>
-              <button className="modal-close" onClick={cancelarEliminarTarea}>✕</button>
-            </div>
-            <div className="delete-modal-content">
-              <p>¿Estás seguro de que deseas eliminar esta tarea?</p>
-              <p className="delete-warning">Esta acción no se puede deshacer.</p>
-            </div>
+            <div className="modal-header"><h3>⚠️ Confirmar Eliminación</h3><button className="modal-close" onClick={() => setDeleteModalTask(null)}>✕</button></div>
+            <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta tarea?</p><p className="delete-warning">Esta acción no se puede deshacer.</p></div>
             <div className="delete-modal-buttons">
-              <button className="cancelar-btn" onClick={cancelarEliminarTarea}>
-                ✕ Cancelar
-              </button>
-              <button className="confirmar-eliminar-btn" onClick={eliminarTarea}>
-                🗑️ Eliminar
-              </button>
+              <button className="cancelar-btn" onClick={() => setDeleteModalTask(null)}>✕ Cancelar</button>
+              <button className="confirmar-eliminar-btn" onClick={() => eliminarTarea(deleteModalTask)}>🗑️ Eliminar</button>
             </div>
           </div>
         </div>
         
-        {/* Modal de confirmación para eliminar lista */}
-        <div className={`modal-overlay delete-modal-overlay ${deleteListModal ? 'active' : ''}`} onClick={cancelarEliminarLista}>
+        {/* Modal Eliminar Lista */}
+        <div className={`modal-overlay delete-modal-overlay ${deleteListModal ? 'active' : ''}`} onClick={() => setDeleteListModal(null)}>
           <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>⚠️ Eliminar Lista</h3>
-              <button className="modal-close" onClick={cancelarEliminarLista}>✕</button>
-            </div>
-            <div className="delete-modal-content">
-              <p>¿Estás seguro de que deseas eliminar esta lista?</p>
-              <p className="delete-warning">Se eliminarán todas las tareas contenidas en ella. Esta acción no se puede deshacer.</p>
-            </div>
+            <div className="modal-header"><h3>⚠️ Eliminar Lista</h3><button className="modal-close" onClick={() => setDeleteListModal(null)}>✕</button></div>
+            <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta lista?</p><p className="delete-warning">Se eliminarán todas las tareas contenidas en ella. Esta acción no se puede deshacer.</p></div>
             <div className="delete-modal-buttons">
-              <button className="cancelar-btn" onClick={cancelarEliminarLista}>
-                ✕ Cancelar
-              </button>
-              <button className="confirmar-eliminar-btn" onClick={eliminarLista}>
-                🗑️ Eliminar Lista
-              </button>
+              <button className="cancelar-btn" onClick={() => setDeleteListModal(null)}>✕ Cancelar</button>
+              <button className="confirmar-eliminar-btn" onClick={() => eliminarLista(deleteListModal)}>🗑️ Eliminar Lista</button>
             </div>
           </div>
         </div>
         
-        {/* Modal de Reporte de Incumplimientos */}
-        {showReport && (
-          <EnhancedReportModal 
-            tasks={tasks} 
-            onClose={() => setShowReport(false)} 
-          />
-        )}
+        {showReport && <EnhancedReportModal tasks={tasks} onClose={() => setShowReport(false)} />}
         
-        {/* Notificaciones */}
-        {notification && (
-          <div className={`notification notification-${notification.type}`}>
-            {notification.message}
-          </div>
-        )}
+        {notification && <div className={`notification notification-${notification.type}`}>{notification.message}</div>}
       </main>
     </>
   )

@@ -253,6 +253,7 @@ body {
     position: relative;
 }
 
+
 /* Header del contenido */
 .content-header {
     display: flex;
@@ -260,6 +261,7 @@ body {
     align-items: center;
     margin-bottom: 25px;
 }
+
 
 .content-header h1 {
     color: #2c3e50;
@@ -2800,6 +2802,83 @@ select:focus {
     font-size: 12px;
 }
 
+/* Estilos mejorados para el calendario */
+.calendar-day.has-tasks {
+  background: linear-gradient(135deg, #e8f8f5 0%, #d5f5e3 100%);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.calendar-day.has-tasks:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+  background: linear-gradient(135deg, #d5f5e3 0%, #abebc6 100%);
+}
+
+.calendar-day.has-urgent {
+  background: linear-gradient(135deg, #fff5e0 0%, #ffe5b3 100%);
+}
+
+.calendar-day.has-urgent:hover {
+  background: linear-gradient(135deg, #ffe5b3 0%, #ffd966 100%);
+}
+
+.calendar-day.selected {
+  border: 2px solid #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.task-preview-mini {
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+.mini-task {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #2d3436;
+}
+
+.calendar-footer {
+  margin-top: 15px;
+  padding: 10px;
+  text-align: center;
+  border-top: 1px solid #e9ecef;
+}
+
+.calendar-tip {
+  font-size: 12px;
+  color: #636e72;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* Animación de resaltado para tareas */
+.highlight-task {
+  animation: highlightPulse 0.8s ease-in-out 2;
+}
+
+
+@keyframes highlightPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  50% { 
+    transform: scale(1.02);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #fff9e6 0%, #ffe5b3 100%);
+  }
+}
+
+
 /* ================= REPORTE MEJORADO ================= */
 .report-modal.enhanced {
     max-width: 900px;
@@ -3217,3 +3296,17 @@ select:focus {
     .filtros { justify-content: center; }
     .stats-badges { justify-content: center; }
 }
+<div className="filtros">
+  <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
+  <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
+  <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
+  <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
+  <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
+  
+  {/* 👇 BOTÓN PARA LIMPIAR FECHA - Aparece SOLO si hay fecha seleccionada */}
+  {selectedDate && (
+    <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
+      ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
+    </button>
+  )}
+</div>
