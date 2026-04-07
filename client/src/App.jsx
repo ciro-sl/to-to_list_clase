@@ -988,6 +988,7 @@ const STORAGE_KEY_TASKS = 'todo_tasks'
 const STORAGE_KEY_LISTS = 'todo_lists'
 const STORAGE_KEY_LAST_ID_TASK = 'todo_last_id_task'
 const STORAGE_KEY_LAST_ID_LIST = 'todo_last_id_list'
+const STORAGE_KEY_SCHEDULED_TASKS = 'todo_scheduled_tasks'
 
 // Cargar desde localStorage
 const loadFromStorage = (key, defaultValue) => {
@@ -1017,13 +1018,43 @@ const generateId = (key) => {
   return newId
 }
 
+// Inicializar contadores si no existen
+const initializeIds = (existingLists = []) => {
+  if (!localStorage.getItem(STORAGE_KEY_LAST_ID_TASK)) {
+    localStorage.setItem(STORAGE_KEY_LAST_ID_TASK, '1')
+  }
+  
+  // Calcular el siguiente ID basado en las listas existentes
+  let maxListId = 1
+  existingLists.forEach(list => {
+    if (list.id > maxListId) maxListId = list.id
+  })
+  
+  if (!localStorage.getItem(STORAGE_KEY_LAST_ID_LIST)) {
+    localStorage.setItem(STORAGE_KEY_LAST_ID_LIST, maxListId.toString())
+  } else {
+    // Asegurarse de que el contador no sea menor que el máximo existente
+    const currentLastId = parseInt(localStorage.getItem(STORAGE_KEY_LAST_ID_LIST), 10)
+    if (currentLastId < maxListId) {
+      localStorage.setItem(STORAGE_KEY_LAST_ID_LIST, maxListId.toString())
+    }
+  }
+}
+
 // ================= COMPONENTE PRINCIPAL APP =================
 
 function App() {
-  const [tasks, setTasks] = useState(() => loadFromStorage(STORAGE_KEY_TASKS, []))
-  const [lists, setLists] = useState(() => loadFromStorage(STORAGE_KEY_LISTS, [
+  // Cargar listas iniciales
+  const initialLists = loadFromStorage(STORAGE_KEY_LISTS, [
     { id: 1, name: 'Tareas Generales', color: '#3498db' }
-  ]))
+  ])
+  
+  // Inicializar contadores al iniciar
+  initializeIds(initialLists)
+  
+  const [tasks, setTasks] = useState(() => loadFromStorage(STORAGE_KEY_TASKS, []))
+  const [lists, setLists] = useState(initialLists)
+  const [scheduledTasks, setScheduledTasks] = useState(() => loadFromStorage(STORAGE_KEY_SCHEDULED_TASKS, []))
   const [selectedList, setSelectedList] = useState(1)
   const [newListName, setNewListName] = useState('')
   const [newListColor, setNewListColor] = useState('#3498db')
@@ -1034,6 +1065,8 @@ function App() {
   const [newTaskDate, setNewTaskDate] = useState('')
   const [newTaskStartTime, setNewTaskStartTime] = useState('')
   const [newTaskEndTime, setNewTaskEndTime] = useState('')
+  const [newTaskScheduled, setNewTaskScheduled] = useState(false)
+  const [newTaskScheduledDate, setNewTaskScheduledDate] = useState('')
   const [editingTask, setEditingTask] = useState(null)
   const [editTitle, setEditTitle] = useState('')
   const [editDesc, setEditDesc] = useState('')
@@ -1049,6 +1082,7 @@ function App() {
   const [showReport, setShowReport] = useState(false)
   const [selectedDate, setSelectedDate] = useState(null)
   const [liveClock, setLiveClock] = useState(new Date())
+  const [showScheduledOnly, setShowScheduledOnly] = useState(false)
   
   // Reloj en tiempo real para actualizar estados de tareas
   useEffect(() => {
@@ -1068,6 +1102,28 @@ function App() {
     saveToStorage(STORAGE_KEY_LISTS, lists)
   }, [lists])
   
+  // Persistir tareas programadas en localStorage cada vez que cambien
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY_SCHEDULED_TASKS, scheduledTasks)
+  }, [scheduledTasks])
+  
+  // Revisar tareas programadas y moverlas a Tareas Generales cuando llegue su fecha
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]
+    
+    const tasksToActivate = scheduledTasks.filter(st => st.scheduledDate <= today)
+    
+    if (tasksToActivate.length > 0) {
+      setTasks(prev => prev.map(t => {
+        const shouldActivate = tasksToActivate.some(st => st.taskId === t.id && t.isScheduled && t.scheduledFor <= today)
+        if (shouldActivate) {
+          return { ...t, isScheduled: false, scheduledFor: null }
+        }
+        return t
+      }))
+    }
+  }, [scheduledTasks])
+  
   // Mostrar notificación
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type })
@@ -1076,8 +1132,24 @@ function App() {
   
   // Filtrar tareas por lista seleccionada
   const listTasks = useMemo(() => {
-    return tasks.filter(t => t.list_id === selectedList)
-  }, [tasks, selectedList])
+    if (showScheduledOnly) {
+      return tasks.filter(t => scheduledTasks.some(st => st.taskId === t.id))
+    }
+    const today = new Date().toISOString().split('T')[0]
+    return tasks.filter(t => {
+      // Si es una tarea programada y aún no ha llegado su fecha, no mostrarla en la lista
+      if (t.isScheduled && t.scheduledFor && t.scheduledFor > today) {
+        return false
+      }
+      return t.list_id === selectedList
+    })
+  }, [tasks, selectedList, showScheduledOnly, scheduledTasks])
+
+  // Obtener tareas programadas que ya están vigentes (llegó su fecha)
+  const activeScheduledTasks = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return scheduledTasks.filter(st => st.scheduledDate <= today)
+  }, [scheduledTasks])
   
   // Estadísticas basadas en tareas de la lista actual
   const stats = useMemo(() => {
@@ -1123,7 +1195,6 @@ function App() {
       showNotification('⚠️ El nombre de la lista no puede exceder los 20 caracteres', 'error')
       return false
     }
-    showNotification('✅ Lista creada exitosamente', 'success')
     return true
   }
   
@@ -1231,8 +1302,10 @@ function App() {
   const crearLista = () => {
     if (!validarCrearLista()) return
     
+    const newListId = generateId(STORAGE_KEY_LAST_ID_LIST)
+    
     const newList = {
-      id: generateId(STORAGE_KEY_LAST_ID_LIST),
+      id: newListId,
       name: newListName,
       color: newListColor
     }
@@ -1276,6 +1349,8 @@ function App() {
     setNewTaskDate('')
     setNewTaskStartTime('')
     setNewTaskEndTime('')
+    setNewTaskScheduled(false)
+    setNewTaskScheduledDate('')
     setShowModal(true)
   }
   
@@ -1287,28 +1362,56 @@ function App() {
   const agregarTarea = () => {
     if (!validarCrearTarea()) return
     
+    const today = new Date().toISOString().split('T')[0]
+    const isFutureTask = newTaskDate && newTaskDate > today
+    
     const newTask = {
       id: generateId(STORAGE_KEY_LAST_ID_TASK),
       title: newTaskTitle,
       description: newTaskDesc,
       priority: newTaskPriority,
-      list_id: selectedList,
+      list_id: isFutureTask ? 1 : selectedList,
       date: newTaskDate || null,
       startTime: newTaskStartTime || null,
       endTime: newTaskEndTime || null,
       completed: false,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isScheduled: isFutureTask,
+      scheduledFor: isFutureTask ? newTaskDate : null
     }
     
-    setTasks(prev => [...prev, newTask])
+    const newTasks = [...tasks, newTask]
+    setTasks(newTasks)
+    
+    if (isFutureTask) {
+      const scheduledTask = {
+        taskId: newTask.id,
+        scheduledDate: newTaskDate,
+        addedAt: new Date().toISOString()
+      }
+      setScheduledTasks(prev => [...prev, scheduledTask])
+      showNotification('✅ Tarea programada para ' + formatDate(newTaskDate), 'success')
+    } else if (newTaskScheduled && newTaskScheduledDate) {
+      const scheduledTask = {
+        taskId: newTask.id,
+        scheduledDate: newTaskScheduledDate,
+        addedAt: new Date().toISOString()
+      }
+      setScheduledTasks(prev => [...prev, scheduledTask])
+      showNotification('✅ Tarea creada y programada para ' + formatDate(newTaskScheduledDate), 'success')
+    } else {
+      showNotification('✅ Tarea creada exitosamente', 'success')
+    }
+    
     setNewTaskTitle('')
     setNewTaskDesc('')
     setNewTaskPriority('baja')
     setNewTaskDate('')
     setNewTaskStartTime('')
     setNewTaskEndTime('')
+    setNewTaskScheduled(false)
+    setNewTaskScheduledDate('')
     setShowModal(false)
-    showNotification('✅ Tarea creada exitosamente', 'success')
   }
   
   // Eliminar tarea
@@ -1455,7 +1558,10 @@ function App() {
             <div 
               key={list.id} 
               className={`lista-item ${selectedList === list.id ? 'lista-activa' : ''}`}
-              onClick={() => setSelectedList(list.id)}
+              onClick={() => {
+                setSelectedList(list.id)
+                setShowScheduledOnly(false)
+              }}
             >
               <div 
                 className="lista-contenido" 
@@ -1489,16 +1595,25 @@ function App() {
           </button>
         </div>
         
-        {/* Sección de Reportes */}
-        <div className="reports-sidebar-section">
+        {/* Sección de Tareas Programadas */}
+        <div className="scheduled-sidebar-section">
           <button 
-            className="report-btn"
-            onClick={() => setShowReport(true)}
+            className="scheduled-btn"
+            onClick={() => {
+              setSelectedList(1)
+              setShowScheduledOnly(true)
+              setFilter('todas')
+            }}
+            title="Ver tareas programadas"
           >
-            📊 Reporte de Incumplimientos
-            {stats.incumplidas > 0 && (
-              <span className="violation-badge">{stats.incumplidas}</span>
-            )}
+            📆 Tareas Programadas
+            {(() => {
+              const today = new Date().toISOString().split('T')[0]
+              const pendingScheduled = scheduledTasks.filter(st => st.scheduledDate > today).length
+              return pendingScheduled > 0 ? (
+                <span className="scheduled-badge">{pendingScheduled}</span>
+              ) : null
+            })()}
           </button>
         </div>
         
@@ -1845,6 +1960,37 @@ function App() {
                 <option value="media">🟡 Prioridad Media</option>
                 <option value="alta">🔴 Prioridad Alta</option>
               </select>
+              
+              {/* Opción de programar tarea para otra fecha */}
+              <div className="scheduled-option">
+                <label className="scheduled-checkbox">
+                  <input 
+                    type="checkbox" 
+                    checked={newTaskScheduled}
+                    onChange={(e) => {
+                      setNewTaskScheduled(e.target.checked)
+                      if (e.target.checked && !newTaskScheduledDate) {
+                        const tomorrow = new Date()
+                        tomorrow.setDate(tomorrow.getDate() + 1)
+                        setNewTaskScheduledDate(tomorrow.toISOString().split('T')[0])
+                      }
+                    }}
+                  />
+                  <span>📆 Programar para otra fecha</span>
+                </label>
+                {newTaskScheduled && (
+                  <div className="scheduled-date-input">
+                    <input
+                      type="date"
+                      value={newTaskScheduledDate}
+                      onChange={(e) => setNewTaskScheduledDate(e.target.value)}
+                      className="date-input"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
+              </div>
+              
               <button className="modal-submit" onClick={agregarTarea}>
                 Agregar Tarea
               </button>

@@ -1252,6 +1252,9 @@ body {
     color: #2d3436;
     flex: 1;
     line-height: 1.4;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 200px;
 }
 
 .priority-indicator {
@@ -1701,6 +1704,43 @@ body {
 .violation-badge {
     background: white;
     color: #e74c3c;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Tareas Programadas sidebar */
+.scheduled-sidebar-section {
+    margin-bottom: 15px;
+}
+
+.scheduled-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+}
+
+.scheduled-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(243, 156, 18, 0.4);
+}
+
+.scheduled-badge {
+    background: white;
+    color: #f39c12;
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 12px;
@@ -2321,6 +2361,43 @@ select:focus {
 .modal-submit:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.scheduled-option {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.scheduled-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #2d3436;
+}
+
+.scheduled-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #f39c12;
+}
+
+.scheduled-date-input {
+    margin-top: 5px;
+}
+
+.scheduled-date-input .date-input {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
 }
 
 /* Modal de eliminación */
@@ -3042,16 +3119,24 @@ select:focus {
 /* ================= NOTIFICACIONES FLOTANTES ================= */
 .notification {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    padding: 15px 25px;
-    border-radius: 12px;
-    font-size: 14px;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 13px;
     font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: notificationSlide 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    animation: notificationSlideDown 0.3s ease;
     z-index: 3000;
-    max-width: 350px;
+    max-width: 400px;
+    text-align: center;
+    border: 2px solid transparent;
+}
+
+@keyframes notificationSlideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 @keyframes notificationSlide {
@@ -3060,18 +3145,21 @@ select:focus {
 }
 
 .notification-success {
-    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
-    color: white;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+    border-color: #28a745;
 }
 
 .notification-error {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-    color: white;
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border-color: #dc3545;
 }
 
 .notification-info {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border-color: #17a2b8;
 }
 
 /* ================= FLOATING BUTTON ================= */
