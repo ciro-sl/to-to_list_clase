@@ -93,7 +93,7 @@ const isTaskUrgent = (task) => {
   return diff > 0 && diff <= 60 * 60 * 1000
 }
 
-// ================= COMPONENTE SISTEMA DE NOTIFICACIONES MEJORADO =================
+// ================= COMPONENTE SISTEMA DE NOTIFICACIONES =================
 
 const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
   const [showPanel, setShowPanel] = useState(false)
@@ -346,9 +346,7 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
   )
 }
 
-// ================= COMPONENTE CALENDARIO MEJORADO =================
-
-// ================= COMPONENTE CALENDARIO MEJORADO CON NAVEGACIÓN =================
+// ================= COMPONENTE CALENDARIO =================
 
 const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -400,24 +398,16 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
     return { hasOverdue, hasUrgent, allCompleted, count: dayTasks.length }
   }
   
-  // Función mejorada para manejar clic en fecha
   const handleDateClick = (date) => {
     const dateStr = date.toISOString().split('T')[0]
     const tasksOnDate = getTasksForDate(date)
     
     if (tasksOnDate.length > 0) {
-      // Si hay tareas, cerrar calendario y pasar la fecha seleccionada
       onSelectDate(date)
     } else {
-      // Si no hay tareas, mostrar mensaje y no cerrar el calendario
       alert(`📅 No hay tareas agendadas para el ${formatDate(dateStr)}`)
     }
   }
-
-  const clearDateFilter = () => {
-  setSelectedDate(null)
-  showNotification('📅 Filtro de fecha eliminado', 'info')
-}
   
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -498,11 +488,7 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
               })}
             </div>
           </div>
-           {selectedDate && (
-            <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
-              ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
-                 </button>
-)}
+          
           <div className="calendar-footer">
             <div className="calendar-tip">
               💡 <strong>Tip:</strong> Haz clic en un día con tareas para verlas en la lista principal
@@ -513,55 +499,8 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose }) => {
     </div>
   )
 }
-// Función para resaltar una tarea específica
-const highlightTaskById = (taskId) => {
-  setTimeout(() => {
-    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`)
-    if (taskElement) {
-      taskElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      taskElement.classList.add('highlight-task')
-      setTimeout(() => taskElement.classList.remove('highlight-task'), 2000)
-    }
-  }, 300)
-}
 
-// Modifica el handleDateSelect para resaltar la primera tarea:
-const handleDateSelect = (date) => {
-  // Cerrar el calendario
-  setShowCalendar(false)
-  
-  // Salir del modo "Tareas Programadas" si estaba activo
-  setShowScheduledOnly(false)
-  
-  // Limpiar cualquier filtro anterior
-  setFilter('todas')
-  
-  // ✅ GUARDAR LA FECHA SELECCIONADA
-  setSelectedDate(date)
-  
-  const dateStr = date.toISOString().split('T')[0]
-  
-  // ✅ Buscar tareas en esa fecha (incluyendo programadas)
-  const tasksOnDate = tasks.filter(t => t.date === dateStr)
-  
-  if (tasksOnDate.length > 0) {
-    // Cambiar a la lista donde está la primera tarea
-    setSelectedList(tasksOnDate[0].list_id)
-    showNotification(`📅 Mostrando ${tasksOnDate.length} tarea(s) del ${formatDate(dateStr)}`, 'info')
-  } else {
-    showNotification(`📅 No hay tareas para el ${formatDate(dateStr)}`, 'info')
-  }
-  
-  // Scroll a la lista de tareas
-  setTimeout(() => {
-    const tasksContainer = document.getElementById('listatareas')
-    if (tasksContainer) {
-      tasksContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, 200)
-}
-
-// ================= COMPONENTE REPORTE DE INCUMPLIMIENTO MEJORADO =================
+// ================= COMPONENTE REPORTE =================
 
 const EnhancedReportModal = ({ tasks, onClose }) => {
   const currentTime = new Date()
@@ -753,6 +692,8 @@ function App() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [liveClock, setLiveClock] = useState(new Date())
   const [showScheduledOnly, setShowScheduledOnly] = useState(false)
+  const [showStats, setShowStats] = useState(false)
+  const [trendView, setTrendView] = useState('week')
   
   // Reloj en tiempo real
   useEffect(() => {
@@ -760,7 +701,7 @@ function App() {
     return () => clearInterval(timer)
   }, [])
 
-  // ================= FUNCIÓN CRÍTICA: Mover tareas programadas a Tareas Generales =================
+  // Función para mover tareas programadas a Tareas Generales
   const moveScheduledTasksToGeneral = () => {
     const today = new Date().toISOString().split('T')[0]
     let movedCount = 0
@@ -768,7 +709,6 @@ function App() {
     
     setTasks(prevTasks => {
       const updatedTasks = prevTasks.map(task => {
-        // Verificar si la tarea está programada y su fecha ha llegado
         if (task.isScheduled && task.scheduledFor && task.scheduledFor <= today) {
           movedCount++
           movedTasks.push(task.title)
@@ -776,13 +716,12 @@ function App() {
             ...task,
             isScheduled: false,
             scheduledFor: null,
-            list_id: 1  // Mover a Tareas Generales
+            list_id: 1
           }
         }
         return task
       })
       
-      // Mostrar notificaciones de tareas movidas
       if (movedTasks.length > 0) {
         setTimeout(() => {
           showNotification(`📅 ${movedTasks.length} tarea(s) programada(s) llegaron a su fecha y están disponibles en "Tareas Generales"`, 'info')
@@ -796,11 +735,10 @@ function App() {
   // Ejecutar al cargar la app y cada hora
   useEffect(() => {
     moveScheduledTasksToGeneral()
-    const interval = setInterval(moveScheduledTasksToGeneral, 3600000) // Cada hora
+    const interval = setInterval(moveScheduledTasksToGeneral, 3600000)
     return () => clearInterval(interval)
   }, [])
   
-  // También ejecutar cuando cambien las tareas (por si se agregan nuevas)
   useEffect(() => {
     moveScheduledTasksToGeneral()
   }, [tasks.length])
@@ -818,51 +756,41 @@ function App() {
     setTimeout(() => setNotification(null), 4000)
   }
   
-  // ================= TAREAS A MOSTRAR (con filtro de programadas) =================
- const displayedTasks = useMemo(() => {
-  const today = new Date().toISOString().split('T')[0]
-  
-  // Si estamos en modo "Tareas Programadas"
-  if (showScheduledOnly) {
-    return tasks
-      .filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today)
-      .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
-  }
-  
-  // Modo normal: filtrar por lista seleccionada
-  let result = tasks.filter(t => t.list_id === selectedList)
-  
-  // 🔥 NUEVO: Si hay una fecha seleccionada en el calendario
-  if (selectedDate) {
-    const dateStr = selectedDate.toISOString().split('T')[0]
-    result = result.filter(t => t.date === dateStr)
-    // ✅ AHORA SÍ muestra tareas programadas si su fecha coincide
-    // (aunque isScheduled = true y scheduledFor sea futuro)
-  } else {
-    // Si NO hay fecha seleccionada, ocultar tareas programadas futuras
-    result = result.filter(t => {
-      // Mostrar tareas normales
-      if (!t.isScheduled) return true
-      // Mostrar tareas programadas que YA llegaron a su fecha
-      if (t.isScheduled && t.scheduledFor && t.scheduledFor <= today) return true
-      // Ocultar tareas programadas para fechas futuras
-      return false
-    })
-  }
-  
-  // Aplicar filtros adicionales (pendientes, completadas, etc.)
-  if (filter === 'pendientes') {
-    result = result.filter(t => !t.completed)
-  } else if (filter === 'completadas') {
-    result = result.filter(t => t.completed)
-  } else if (filter === 'vencidas') {
-    result = result.filter(t => isTaskOverdue(t))
-  } else if (filter === 'urgentes') {
-    result = result.filter(t => isTaskUrgent(t))
-  }
-  
-  return result
-}, [tasks, selectedList, filter, selectedDate, showScheduledOnly])
+  // Tareas a mostrar
+  const displayedTasks = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    
+    if (showScheduledOnly) {
+      return tasks
+        .filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today)
+        .sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor))
+    }
+    
+    let result = tasks.filter(t => t.list_id === selectedList)
+    
+    if (selectedDate) {
+      const dateStr = selectedDate.toISOString().split('T')[0]
+      result = result.filter(t => t.date === dateStr)
+    } else {
+      result = result.filter(t => {
+        if (!t.isScheduled) return true
+        if (t.isScheduled && t.scheduledFor && t.scheduledFor <= today) return true
+        return false
+      })
+    }
+    
+    if (filter === 'pendientes') {
+      result = result.filter(t => !t.completed)
+    } else if (filter === 'completadas') {
+      result = result.filter(t => t.completed)
+    } else if (filter === 'vencidas') {
+      result = result.filter(t => isTaskOverdue(t))
+    } else if (filter === 'urgentes') {
+      result = result.filter(t => isTaskUrgent(t))
+    }
+    
+    return result
+  }, [tasks, selectedList, filter, selectedDate, showScheduledOnly])
   
   // Estadísticas
   const stats = useMemo(() => {
@@ -875,15 +803,65 @@ function App() {
     const conFecha = listActiveTasks.filter(t => t.date).length
     const incumplidas = listActiveTasks.filter(t => isTaskOverdue(t)).length
     const urgentes = listActiveTasks.filter(t => isTaskUrgent(t)).length
-    // Tareas programadas futuras
     const scheduledCount = tasks.filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today).length
     return { total, completadas, pendientes, conFecha, incumplidas, urgentes, scheduledCount }
   }, [tasks, selectedList, liveClock])
-
   
+  // Datos para gráfica de tendencia semanal
+  const weeklyTrendData = useMemo(() => {
+    const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    const completed = new Array(7).fill(0)
+    const pending = new Array(7).fill(0)
+    
+    tasks.forEach(task => {
+      if (!task.date) return
+      const taskDate = new Date(task.date)
+      const dayOfWeek = taskDate.getDay() === 0 ? 6 : taskDate.getDay() - 1
+      
+      if (task.completed) {
+        completed[dayOfWeek]++
+      } else {
+        pending[dayOfWeek]++
+      }
+    })
+    
+    const maxValue = Math.max(...completed, ...pending, 1)
+    
+    return days.map((day, index) => ({
+      day,
+      completed: completed[index],
+      pending: pending[index],
+      total: completed[index] + pending[index],
+      completedPercent: maxValue > 0 ? (completed[index] / maxValue) * 60 : 0,
+      pendingPercent: maxValue > 0 ? (pending[index] / maxValue) * 60 : 0
+    }))
+  }, [tasks])
   
-  // ================= VALIDACIONES =================
+  // Datos para gráfica de tendencia mensual (últimas 4 semanas)
+  const monthlyTrendData = useMemo(() => {
+    const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4']
+    const completed = new Array(4).fill(0)
+    const pending = new Array(4).fill(0)
+    const now = new Date()
+    
+    tasks.forEach(task => {
+      if (!task.date || !task.completed) return
+      const taskDate = new Date(task.date)
+      const diffDays = Math.floor((now - taskDate) / (1000 * 60 * 60 * 24))
+      const weekIndex = Math.floor(diffDays / 7)
+      if (weekIndex >= 0 && weekIndex < 4) {
+        completed[weekIndex]++
+      }
+    })
+    
+    return weeks.map((week, index) => ({
+      week,
+      completed: completed[index],
+      maxValue: Math.max(...completed, 1)
+    }))
+  }, [tasks])
   
+  // Validaciones
   const validarCrearLista = () => {
     if (!newListName.trim()) {
       showNotification('⚠️ Por favor ingrese un nombre para la lista', 'error')
@@ -945,8 +923,7 @@ function App() {
     return true
   }
   
-  // ================= FUNCIONES CRUD =================
-  
+  // Funciones CRUD
   const crearLista = () => {
     if (!validarCrearLista()) return
     
@@ -1057,47 +1034,32 @@ function App() {
   
   const cancelarEdicion = () => setEditingTask(null)
   
-  
-// Función para manejar clic en fecha del calendario
-const handleDateSelect = (date) => {
-  // Cerrar el calendario
-  setShowCalendar(false)
-  
-  // Salir del modo "Tareas Programadas" si estaba activo
-  setShowScheduledOnly(false)
-  
-  // Limpiar cualquier filtro anterior
-  setFilter('todas')
-  
-  // GUARDAR LA FECHA SELECCIONADA (esto es lo que activa el filtro)
-  setSelectedDate(date)
-  
-  // Obtener la fecha en formato string para comparar
-  const dateStr = date.toISOString().split('T')[0]
-  
-  // Buscar tareas en esa fecha
-  const tasksOnDate = tasks.filter(t => t.date === dateStr)
-  
-  if (tasksOnDate.length > 0) {
-    // Cambiar a la lista donde está la primera tarea
-    setSelectedList(tasksOnDate[0].list_id)
-    showNotification(`📅 Mostrando ${tasksOnDate.length} tarea(s) del ${formatDate(dateStr)}`, 'info')
-  } else {
-    showNotification(`📅 No hay tareas para el ${formatDate(dateStr)}`, 'info')
-  }
-  
-  // Scroll a la lista de tareas
-  setTimeout(() => {
-    const tasksContainer = document.getElementById('listatareas')
-    if (tasksContainer) {
-      tasksContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const handleDateSelect = (date) => {
+    setShowCalendar(false)
+    setShowScheduledOnly(false)
+    setFilter('todas')
+    setSelectedDate(date)
+    
+    const dateStr = date.toISOString().split('T')[0]
+    const tasksOnDate = tasks.filter(t => t.date === dateStr)
+    
+    if (tasksOnDate.length > 0) {
+      setSelectedList(tasksOnDate[0].list_id)
+      showNotification(`📅 Mostrando ${tasksOnDate.length} tarea(s) del ${formatDate(dateStr)}`, 'info')
+    } else {
+      showNotification(`📅 No hay tareas para el ${formatDate(dateStr)}`, 'info')
     }
-  }, 200)
-}
+    
+    setTimeout(() => {
+      const tasksContainer = document.getElementById('listatareas')
+      if (tasksContainer) {
+        tasksContainer.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 200)
+  }
   
   const clearDateFilter = () => setSelectedDate(null)
   
-  // Mostrar tareas programadas
   const showScheduledTasksList = () => {
     setShowScheduledOnly(true)
     setSelectedList(null)
@@ -1105,7 +1067,6 @@ const handleDateSelect = (date) => {
     setSelectedDate(null)
   }
   
-  // Mostrar lista normal
   const showNormalList = (listId) => {
     setShowScheduledOnly(false)
     setSelectedList(listId)
@@ -1156,6 +1117,16 @@ const handleDateSelect = (date) => {
             <button onClick={crearLista} className="boton-agregar-lista">+</button>
           </div>
         </div>
+
+       {/* Botón de Estadísticas/Gráficas - Toggle */}
+          <div className="stats-sidebar-section">
+            <button 
+              className={`stats-btn ${showStats ? 'active' : ''}`} 
+              onClick={() => setShowStats(!showStats)}
+                 >
+              {showStats ? '📊 Ocultar Estadísticas' : '📊 Ver Estadísticas'}
+            </button>
+          </div>
         
         <div className="contenedor-listas">
           {lists.map(list => (
@@ -1177,7 +1148,7 @@ const handleDateSelect = (date) => {
           ))}
         </div>
         
-        {/* Botón Tareas Programadas MEJORADO */}
+        {/* Botón Tareas Programadas */}
         <div className="scheduled-sidebar-section">
           <button 
             className={`scheduled-btn ${showScheduledOnly ? 'active' : ''}`}
@@ -1212,59 +1183,46 @@ const handleDateSelect = (date) => {
       <main className="contenido-principal">
         <div className="content-header">
           <h1>
-  📋 {showScheduledOnly ? '📆 Tareas Programadas' : (listaActual?.name || 'Lista de Tareas')}
-  
-  {/* Badge de fecha seleccionada */}
-  {selectedDate && (
-    <span className="date-filter-badge">
-      📅 {formatDate(selectedDate.toISOString().split('T')[0])}
-    </span>
-  )}
-  
-  {/* Botón para limpiar filtro de fecha (opcional, junto al badge) */}
-  {selectedDate && (
-    <button 
-      className="clear-date-badge" 
-      onClick={clearDateFilter}
-      title="Limpiar filtro de fecha"
-    >
-      ✖️
-    </button>
-  )}
-</h1>
+            📋 {showScheduledOnly ? '📆 Tareas Programadas' : (listaActual?.name || 'Lista de Tareas')}
+            {selectedDate && (
+              <span className="date-filter-badge">
+                📅 {formatDate(selectedDate.toISOString().split('T')[0])}
+              </span>
+            )}
+            {selectedDate && (
+              <button 
+                className="clear-date-badge" 
+                onClick={clearDateFilter}
+                title="Limpiar filtro de fecha"
+              >
+                ✖️
+              </button>
+            )}
+          </h1>
+        </div>
+        
+        <div className="controls-row">
+          <div className="filtros">
+            <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
+            <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
+            <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
+            <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
+            <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
+            {selectedDate && (
+              <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
+                ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
+              </button>
+            )}
+          </div>
           
-          <div className="controls-row">
-            <div className="filtros">
-              <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
-              <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
-              <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
-              <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
-              <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
-            </div>
-            
-            <div className="stats-badges">
-              <div className="stat-badge pending">📝 {stats.pendientes}</div>
-              <div className="stat-badge completed">✅ {stats.completadas}</div>
-              {stats.conFecha > 0 && <div className="stat-badge scheduled">📅 {stats.conFecha}</div>}
-              {stats.urgentes > 0 && <div className="stat-badge urgent">⚡ {stats.urgentes}</div>}
-              {stats.incumplidas > 0 && <div className="stat-badge violated">⏰ {stats.incumplidas}</div>}
-            </div>
+          <div className="stats-badges">
+            <div className="stat-badge pending">📝 {stats.pendientes}</div>
+            <div className="stat-badge completed">✅ {stats.completadas}</div>
+            {stats.conFecha > 0 && <div className="stat-badge scheduled">📅 {stats.conFecha}</div>}
+            {stats.urgentes > 0 && <div className="stat-badge urgent">⚡ {stats.urgentes}</div>}
+            {stats.incumplidas > 0 && <div className="stat-badge violated">⏰ {stats.incumplidas}</div>}
           </div>
         </div>
-        <div className="filtros">
-  <button className={`filtro-btn ${filter === 'todas' ? 'active' : ''}`} onClick={() => setFilter('todas')}>📃 Todas</button>
-  <button className={`filtro-btn ${filter === 'pendientes' ? 'active' : ''}`} onClick={() => setFilter('pendientes')}>📝 Pendientes</button>
-  <button className={`filtro-btn ${filter === 'completadas' ? 'active' : ''}`} onClick={() => setFilter('completadas')}>✅ Completadas</button>
-  <button className={`filtro-btn ${filter === 'vencidas' ? 'active' : ''}`} onClick={() => setFilter('vencidas')}>⏰ Vencidas</button>
-  <button className={`filtro-btn ${filter === 'urgentes' ? 'active' : ''}`} onClick={() => setFilter('urgentes')}>⚡ Urgentes</button>
-  
-  {/* 👇 BOTÓN PARA LIMPIAR FECHA - Aparece SOLO si hay fecha seleccionada */}
-  {selectedDate && (
-    <button className="filtro-btn clear-date-btn" onClick={clearDateFilter}>
-      ✖️ Limpiar fecha: {formatDate(selectedDate.toISOString().split('T')[0])}
-    </button>
-  )}
-</div>
         
         {showCalendar && (
           <EnhancedCalendar tasks={tasks} onSelectDate={handleDateSelect} selectedDate={selectedDate} onClose={() => setShowCalendar(false)} />
@@ -1355,40 +1313,137 @@ const handleDateSelect = (date) => {
           )}
         </ul>
         
-        <button className="floating-btn" onClick={openModal}>+</button>
+        {/* Botón flotante moderno para agregar tarea */}
+        <button className="floating-btn" onClick={openModal}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
         
-        {/* Modal Nueva Tarea */}
-        <div className={`modal-overlay ${showModal ? 'active' : ''}`} onClick={closeModal}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><h3>➕ Nueva Tarea</h3><button className="modal-close" onClick={closeModal}>✕</button></div>
-            <div className="modal-form">
-              <div className="input-with-counter">
-                <input type="text" placeholder="Título de la tarea" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} maxLength={50} autoFocus />
-                <span className="char-counter">{newTaskTitle.length}/50</span>
-              </div>
-              <div className="input-with-counter">
-                <textarea placeholder="Descripción (opcional)" value={newTaskDesc} onChange={(e) => setNewTaskDesc(e.target.value)} maxLength={100} />
-                <span className="char-counter">{newTaskDesc.length}/100</span>
-              </div>
-              <div className="datetime-inputs">
-                <label className="datetime-label">📅 Fecha:</label>
-                <input type="date" value={newTaskDate} onChange={(e) => setNewTaskDate(e.target.value)} className="date-input" min={new Date().toISOString().split('T')[0]} />
-              </div>
-              <div className="datetime-inputs">
-                <label className="datetime-label">🕐 Horario:</label>
-                <input type="time" value={newTaskStartTime} onChange={(e) => setNewTaskStartTime(e.target.value)} className="time-input" placeholder="Inicio" />
-                <span className="time-separator">-</span>
-                <input type="time" value={newTaskEndTime} onChange={(e) => setNewTaskEndTime(e.target.value)} className="time-input" placeholder="Fin" />
-              </div>
-              <select value={newTaskPriority} onChange={(e) => setNewTaskPriority(e.target.value)}>
-                <option value="baja">🟢 Prioridad Baja</option>
-                <option value="media">🟡 Prioridad Media</option>
-                <option value="alta">🔴 Prioridad Alta</option>
-              </select>
-              <button className="modal-submit" onClick={agregarTarea}>Agregar Tarea</button>
-            </div>
+        {/* ================= MODAL DE CREAR TAREA CORREGIDO ================= */}
+<div className={`modal-overlay ${showModal ? 'active' : ''}`} onClick={closeModal}>
+  <div className="modal task-modal enhanced" onClick={e => e.stopPropagation()}>
+    <div className="modal-header">
+      <h3>
+        <span className="modal-icon">✨</span>
+        Crear Nueva Tarea
+      </h3>
+      <button className="modal-close" onClick={closeModal}>✕</button>
+    </div>
+    <div className="modal-form modern-form">
+      
+      {/* Campo Título - con placeholder=" " para que flote */}
+      <div className="input-group floating">
+        <input 
+          type="text" 
+          id="taskTitle"
+          placeholder=" "
+          value={newTaskTitle}
+          onChange={(e) => setNewTaskTitle(e.target.value)}
+          maxLength={50}
+          autoFocus
+        />
+        <label htmlFor="taskTitle">📝 Título de la tarea</label>
+        <span className="char-counter">{newTaskTitle.length}/50</span>
+      </div>
+      
+      {/* Campo Descripción - con placeholder=" " */}
+      <div className="input-group floating">
+        <textarea 
+          id="taskDesc"
+          placeholder=" "
+          value={newTaskDesc}
+          onChange={(e) => setNewTaskDesc(e.target.value)}
+          maxLength={100}
+          rows="3"
+        />
+        <label htmlFor="taskDesc">📄 Descripción (opcional)</label>
+        <span className="char-counter">{newTaskDesc.length}/100</span>
+      </div>
+      
+      {/* Fila de fecha y prioridad */}
+      <div className="form-row-modern">
+        <div className="input-group floating half">
+          <input 
+            type="date" 
+            id="taskDate"
+            value={newTaskDate}
+            onChange={(e) => setNewTaskDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+          />
+          <label htmlFor="taskDate">📅 Fecha</label>
+        </div>
+        
+        <div className="priority-selector">
+          <label>🎯 Prioridad</label>
+          <div className="priority-buttons">
+            <button 
+              type="button"
+              className={`priority-option baja ${newTaskPriority === 'baja' ? 'active' : ''}`}
+              onClick={() => setNewTaskPriority('baja')}
+            >
+              🟢 Baja
+            </button>
+            <button 
+              type="button"
+              className={`priority-option media ${newTaskPriority === 'media' ? 'active' : ''}`}
+              onClick={() => setNewTaskPriority('media')}
+            >
+              🟡 Media
+            </button>
+            <button 
+              type="button"
+              className={`priority-option alta ${newTaskPriority === 'alta' ? 'active' : ''}`}
+              onClick={() => setNewTaskPriority('alta')}
+            >
+              🔴 Alta
+            </button>
           </div>
         </div>
+      </div>
+      
+      {/* Fila de horas */}
+      <div className="form-row-modern">
+        <div className="input-group floating half">
+          <input 
+            type="time" 
+            id="startTime"
+            placeholder=" "
+            value={newTaskStartTime}
+            onChange={(e) => setNewTaskStartTime(e.target.value)}
+            step="600"
+          />
+          <label htmlFor="startTime">⏰ Hora inicio</label>
+        </div>
+        <div className="input-group floating half">
+          <input 
+            type="time" 
+            id="endTime"
+            placeholder=" "
+            value={newTaskEndTime}
+            onChange={(e) => setNewTaskEndTime(e.target.value)}
+            step="600"
+          />
+          <label htmlFor="endTime">⏰ Hora fin</label>
+        </div>
+      </div>
+      
+      {/* Error de hora */}
+      {(newTaskStartTime && newTaskEndTime && newTaskStartTime >= newTaskEndTime) && (
+        <div className="time-error-modern">
+          ⚠️ La hora de fin debe ser posterior a la hora de inicio
+        </div>
+      )}
+      
+      {/* Botón crear */}
+      <button className="modal-submit modern" onClick={agregarTarea}>
+        <span>✨</span>
+        Crear Tarea
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+</div>
         
         {/* Modal Eliminar Tarea */}
         <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={() => setDeleteModalTask(null)}>
@@ -1417,6 +1472,191 @@ const handleDateSelect = (date) => {
         {showReport && <EnhancedReportModal tasks={tasks} onClose={() => setShowReport(false)} />}
         
         {notification && <div className={`notification notification-${notification.type}`}>{notification.message}</div>}
+
+        {/* ================= MODAL DE ESTADÍSTICAS CON GRÁFICAS DE TENDENCIA ================= */}
+        {showStats && (
+          <div className="modal-overlay active" onClick={() => setShowStats(false)}>
+            <div className="modal stats-modal enhanced" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>📊 Panel de Estadísticas</h3>
+                <div className="trend-toggle">
+                  <button 
+                    className={`trend-btn ${trendView === 'week' ? 'active' : ''}`}
+                    onClick={() => setTrendView('week')}
+                  >
+                    📅 Semanal
+                  </button>
+                  <button 
+                    className={`trend-btn ${trendView === 'month' ? 'active' : ''}`}
+                    onClick={() => setTrendView('month')}
+                  >
+                    📆 Mensual
+                  </button>
+                </div>
+                <button className="modal-close" onClick={() => setShowStats(false)}>✕</button>
+              </div>
+              <div className="stats-container">
+                
+                {/* Tarjetas de resumen */}
+                <div className="stats-cards">
+                  <div className="stat-card total">
+                    <div className="stat-icon">📋</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.length}</span>
+                      <span className="stat-label">Total Tareas</span>
+                    </div>
+                  </div>
+                  <div className="stat-card completed">
+                    <div className="stat-icon">✅</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => t.completed).length}</span>
+                      <span className="stat-label">Completadas</span>
+                    </div>
+                  </div>
+                  <div className="stat-card pending">
+                    <div className="stat-icon">⏳</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => !t.completed && !isTaskOverdue(t)).length}</span>
+                      <span className="stat-label">Pendientes</span>
+                    </div>
+                  </div>
+                  <div className="stat-card overdue">
+                    <div className="stat-icon">⚠️</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => isTaskOverdue(t)).length}</span>
+                      <span className="stat-label">Vencidas</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gráfica de tendencia en espiral (evolución) */}
+                <div className="trend-chart-section">
+                  <h4>📈 Evolución de Tareas {trendView === 'week' ? 'Semanal' : 'Mensual'}</h4>
+                  <div className="spiral-trend">
+                    {trendView === 'week' ? (
+                      <div className="weekly-spiral">
+                        {weeklyTrendData.map((item, idx) => (
+                          <div key={idx} className="spiral-bar-group">
+                            <div className="spiral-bars">
+                              <div 
+                                className="spiral-bar completed-bar" 
+                                style={{ height: `${item.completedPercent}px` }}
+                                title={`Completadas: ${item.completed}`}
+                              >
+                                <span className="bar-value">{item.completed}</span>
+                              </div>
+                              <div 
+                                className="spiral-bar pending-bar" 
+                                style={{ height: `${item.pendingPercent}px` }}
+                                title={`Pendientes: ${item.pending}`}
+                              >
+                                <span className="bar-value">{item.pending}</span>
+                              </div>
+                            </div>
+                            <span className="spiral-label">{item.day}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="monthly-spiral">
+                        {monthlyTrendData.map((item, idx) => {
+                          const height = (item.completed / item.maxValue) * 80 || 0
+                          return (
+                            <div key={idx} className="month-bar-group">
+                              <div 
+                                className="month-bar" 
+                                style={{ height: `${height}px` }}
+                                title={`${item.week}: ${item.completed} tareas completadas`}
+                              >
+                                <span className="month-value">{item.completed}</span>
+                              </div>
+                              <span className="month-label">{item.week}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="trend-legend">
+                    <span className="legend-dot completed-dot"></span>
+                    <span>Completadas</span>
+                    <span className="legend-dot pending-dot"></span>
+                    <span>Pendientes</span>
+                  </div>
+                </div>
+
+                {/* Gráfica de barras de progreso */}
+                <div className="chart-section">
+                  <h4>📊 Progreso General</h4>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>✅ Completadas</span>
+                      <span>{Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill completed-fill"
+                        style={{ width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>⏳ Pendientes</span>
+                      <span>{Math.round((tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill pending-fill"
+                        style={{ width: `${(tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>⚠️ Vencidas</span>
+                      <span>{Math.round((tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill overdue-fill"
+                        style={{ width: `${(tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estadísticas por prioridad */}
+                <div className="priority-stats">
+                  <h4>🎯 Tareas por Prioridad</h4>
+                  <div className="priority-bars">
+                    <div className="priority-item alta">
+                      <span>🔴 Alta</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'alta').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'alta').length}</span>
+                    </div>
+                    <div className="priority-item media">
+                      <span>🟡 Media</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'media').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'media').length}</span>
+                    </div>
+                    <div className="priority-item baja">
+                      <span>🟢 Baja</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'baja').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'baja').length}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </>
   )
