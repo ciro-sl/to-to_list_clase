@@ -693,7 +693,16 @@ function App() {
   const [liveClock, setLiveClock] = useState(new Date())
   const [showScheduledOnly, setShowScheduledOnly] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [showListModal, setShowListModal] = useState(false)
   const [trendView, setTrendView] = useState('week')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [isSplashVisible, setIsSplashVisible] = useState(true)
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setIsSplashVisible(false), 2200)
+    return () => clearTimeout(timer)
+  }, [])
   
   // Reloj en tiempo real
   useEffect(() => {
@@ -860,6 +869,22 @@ function App() {
       maxValue: Math.max(...completed, 1)
     }))
   }, [tasks])
+
+  if (isSplashVisible) {
+    return (
+      <div className="app-splash">
+        <div className="splash-card">
+          <img src="/cenit-icon.png" alt="Cenit logo" className="splash-logo" />
+          <h1>Cenit</h1>
+          <div className="splash-tagline">Organiza, controla y cumple</div>
+          <p>Cargando tu asistente de productividad...</p>
+          <div className="splash-loader" aria-label="Cargando">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   // Validaciones
   const validarCrearLista = () => {
@@ -1065,11 +1090,13 @@ function App() {
     setSelectedList(null)
     setFilter('todas')
     setSelectedDate(null)
+    setMobileMenuOpen(false)
   }
   
   const showNormalList = (listId) => {
     setShowScheduledOnly(false)
     setSelectedList(listId)
+    setMobileMenuOpen(false)
   }
   
   const listaActual = lists.find(l => l.id === selectedList)
@@ -1086,6 +1113,7 @@ function App() {
         onTaskClick={(task) => {
           setShowScheduledOnly(false)
           setSelectedList(task.list_id)
+          setMobileMenuOpen(false)
           setTimeout(() => {
             const taskElement = document.querySelector(`[data-task-id="${task.id}"]`)
             if (taskElement) {
@@ -1096,8 +1124,16 @@ function App() {
           }, 100)
         }}
       />
+      <button 
+        className="mobile-menu-toggle" 
+        onClick={() => setMobileMenuOpen(prev => !prev)}
+        aria-expanded={mobileMenuOpen}
+        aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+      >
+        ☰
+      </button>
       
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileMenuOpen ? 'open' : 'closed'}`}>
         <h2>📋 Mis Listas</h2>
         
         <div className="formulario-lista">
@@ -1122,7 +1158,10 @@ function App() {
           <div className="stats-sidebar-section">
             <button 
               className={`stats-btn ${showStats ? 'active' : ''}`} 
-              onClick={() => setShowStats(!showStats)}
+              onClick={() => {
+                setShowStats(!showStats)
+                setMobileMenuOpen(false)
+              }}
                  >
               {showStats ? '📊 Ocultar Estadísticas' : '📊 Ver Estadísticas'}
             </button>
@@ -1163,13 +1202,19 @@ function App() {
         </div>
         
         <div className="calendar-sidebar-section">
-          <button className={`calendar-toggle-btn ${showCalendar ? 'active' : ''}`} onClick={() => setShowCalendar(!showCalendar)}>
+          <button className={`calendar-toggle-btn ${showCalendar ? 'active' : ''}`} onClick={() => {
+            setShowCalendar(!showCalendar)
+            setMobileMenuOpen(false)
+          }}>
             📅 {showCalendar ? 'Ocultar Calendario' : 'Ver Calendario'}
           </button>
         </div>
         
         <div className="reports-sidebar-section">
-          <button className="report-btn" onClick={() => setShowReport(true)}>
+          <button className="report-btn" onClick={() => {
+            setShowReport(true)
+            setMobileMenuOpen(false)
+          }}>
             📊 Generar Reporte
           </button>
         </div>
@@ -1242,7 +1287,7 @@ function App() {
               const isUrgent = isTaskUrgent(task)
               
               return (
-                <li key={task.id} data-task-id={task.id} className={`tarea-item ${task.completed ? 'completada' : ''} ${isOverdue ? 'overdue' : ''} ${isUrgent ? 'urgent' : ''}`}>
+                <li key={task.id} data-task-id={task.id} className={`tarea-item prioridad-${task.priority} ${task.completed ? 'completada' : ''} ${isOverdue ? 'overdue' : ''} ${isUrgent ? 'urgent' : ''}`}>
                   {editingTask === task.id ? (
                     <div className="editar-tarea-form">
                       <div className="input-with-counter">
@@ -1320,80 +1365,76 @@ function App() {
           </svg>
         </button>
         
-        {/* ================= MODAL DE CREAR TAREA CORREGIDO ================= */}
+        {/* ================= MODAL DE CREAR TAREA REDISEÑADO ================= */}
 <div className={`modal-overlay ${showModal ? 'active' : ''}`} onClick={closeModal}>
-  <div className="modal task-modal enhanced" onClick={e => e.stopPropagation()}>
+  <div className="modal task-modal modern-mobile" onClick={e => e.stopPropagation()}>
     <div className="modal-header">
       <h3>
         <span className="modal-icon">✨</span>
-        Crear Nueva Tarea
+        Nueva Tarea
       </h3>
       <button className="modal-close" onClick={closeModal}>✕</button>
     </div>
-    <div className="modal-form modern-form">
-      
-      {/* Campo Título - con placeholder=" " para que flote */}
-      <div className="input-group floating">
-        <input 
-          type="text" 
-          id="taskTitle"
-          placeholder=" "
+    <div className="modal-form mobile-form">
+      <div className="mobile-input-group">
+        <label className="mobile-label">📝 Título</label>
+        <input
+          type="text"
+          placeholder="Ej: Terminar el proyecto"
           value={newTaskTitle}
           onChange={(e) => setNewTaskTitle(e.target.value)}
           maxLength={50}
           autoFocus
+          className="mobile-input"
         />
-        <label htmlFor="taskTitle">📝 Título de la tarea</label>
-        <span className="char-counter">{newTaskTitle.length}/50</span>
+        <span className="mobile-char-counter">{newTaskTitle.length}/50</span>
       </div>
-      
-      {/* Campo Descripción - con placeholder=" " */}
-      <div className="input-group floating">
-        <textarea 
-          id="taskDesc"
-          placeholder=" "
+
+      <div className="mobile-input-group">
+        <label className="mobile-label">📄 Descripción</label>
+        <textarea
+          placeholder="Detalles de la tarea..."
           value={newTaskDesc}
           onChange={(e) => setNewTaskDesc(e.target.value)}
           maxLength={100}
           rows="3"
+          className="mobile-textarea"
         />
-        <label htmlFor="taskDesc">📄 Descripción (opcional)</label>
-        <span className="char-counter">{newTaskDesc.length}/100</span>
+        <span className="mobile-char-counter">{newTaskDesc.length}/100</span>
       </div>
-      
-      {/* Fila de fecha y prioridad */}
-      <div className="form-row-modern">
-        <div className="input-group floating half">
-          <input 
-            type="date" 
-            id="taskDate"
+
+      <div className="mobile-row">
+        <div className="mobile-input-group half">
+          <label className="mobile-label">📅 Fecha</label>
+          <input
+            type="date"
             value={newTaskDate}
             onChange={(e) => setNewTaskDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
+            className="mobile-input"
           />
-          <label htmlFor="taskDate">📅 Fecha</label>
         </div>
-        
-        <div className="priority-selector">
-          <label>🎯 Prioridad</label>
-          <div className="priority-buttons">
-            <button 
+
+        <div className="mobile-input-group half">
+          <label className="mobile-label">🎯 Prioridad</label>
+          <div className="mobile-priority-buttons">
+            <button
               type="button"
-              className={`priority-option baja ${newTaskPriority === 'baja' ? 'active' : ''}`}
+              className={`mobile-priority baja ${newTaskPriority === 'baja' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('baja')}
             >
               🟢 Baja
             </button>
-            <button 
+            <button
               type="button"
-              className={`priority-option media ${newTaskPriority === 'media' ? 'active' : ''}`}
+              className={`mobile-priority media ${newTaskPriority === 'media' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('media')}
             >
               🟡 Media
             </button>
-            <button 
+            <button
               type="button"
-              className={`priority-option alta ${newTaskPriority === 'alta' ? 'active' : ''}`}
+              className={`mobile-priority alta ${newTaskPriority === 'alta' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('alta')}
             >
               🔴 Alta
@@ -1401,50 +1442,97 @@ function App() {
           </div>
         </div>
       </div>
-      
-      {/* Fila de horas */}
-      <div className="form-row-modern">
-        <div className="input-group floating half">
-          <input 
-            type="time" 
-            id="startTime"
-            placeholder=" "
+
+      <div className="mobile-row">
+        <div className="mobile-input-group half">
+          <label className="mobile-label">⏰ Inicio</label>
+          <input
+            type="time"
             value={newTaskStartTime}
             onChange={(e) => setNewTaskStartTime(e.target.value)}
             step="600"
+            className="mobile-input"
           />
-          <label htmlFor="startTime">⏰ Hora inicio</label>
         </div>
-        <div className="input-group floating half">
-          <input 
-            type="time" 
-            id="endTime"
-            placeholder=" "
+        <div className="mobile-input-group half">
+          <label className="mobile-label">⏰ Fin</label>
+          <input
+            type="time"
             value={newTaskEndTime}
             onChange={(e) => setNewTaskEndTime(e.target.value)}
             step="600"
+            className="mobile-input"
           />
-          <label htmlFor="endTime">⏰ Hora fin</label>
         </div>
       </div>
-      
-      {/* Error de hora */}
+
       {(newTaskStartTime && newTaskEndTime && newTaskStartTime >= newTaskEndTime) && (
-        <div className="time-error-modern">
-          ⚠️ La hora de fin debe ser posterior a la hora de inicio
+        <div className="mobile-error">
+          ⚠️ La hora de fin debe ser posterior
         </div>
       )}
-      
-      {/* Botón crear */}
-      <button className="modal-submit modern" onClick={agregarTarea}>
-        <span>✨</span>
-        Crear Tarea
-        <span>→</span>
+
+      <button className="mobile-submit-btn" onClick={agregarTarea}>
+        <span>✨</span> Crear Tarea <span>→</span>
       </button>
     </div>
   </div>
 </div>
-        
+
+{/* ===== MODAL DE LISTAS PARA MÓVIL ===== */}
+<div className={`modal-overlay ${showListModal ? 'active' : ''}`} onClick={() => setShowListModal(false)}>
+  <div className="modal lists-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-header">
+      <h3>📁 Mis Listas</h3>
+      <button className="modal-close" onClick={() => setShowListModal(false)}>✕</button>
+    </div>
+    <div className="lists-modal-content">
+      <div className="mobile-new-list">
+        <input
+          type="text"
+          placeholder="Nueva lista..."
+          value={newListName}
+          onChange={(e) => setNewListName(e.target.value)}
+          maxLength={20}
+          className="mobile-list-input"
+        />
+        <button type="button" onClick={crearLista} className="mobile-list-add">+</button>
+      </div>
+
+      <div className="mobile-lists-container">
+        {lists.map(list => (
+          <div 
+            key={list.id} 
+            className={`mobile-list-item ${selectedList === list.id ? 'active' : ''}`}
+            onClick={() => {
+              setSelectedList(list.id)
+              setShowScheduledOnly(false)
+              setShowListModal(false)
+            }}
+          >
+            <div className="mobile-list-color" style={{ background: list.color }}></div>
+            <span className="mobile-list-name">{list.name}</span>
+            {list.id !== 1 && (
+              <button 
+                type="button"
+                className="mobile-list-delete"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (window.confirm('¿Eliminar esta lista y todas sus tareas?')) {
+                    eliminarLista(list.id)
+                  }
+                }}
+              >
+                🗑️
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
         {/* Modal Eliminar Tarea */}
         <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={() => setDeleteModalTask(null)}>
           <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
@@ -1657,6 +1745,77 @@ function App() {
             </div>
           </div>
         )}
+      {/* ===== BARRA DE NAVEGACIÓN INFERIOR PARA MÓVIL (TABS) ===== */}
+      <div className="mobile-bottom-nav">
+        <button 
+          className={`mobile-nav-item ${!showScheduledOnly && !showCalendar && !showStats && !showListModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📋</span>
+          <span className="mobile-nav-label">Tareas</span>
+        </button>
+
+        <button 
+          className={`mobile-nav-item ${showListModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowListModal(true)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📁</span>
+          <span className="mobile-nav-label">Listas</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showScheduledOnly ? 'active' : ''}`}
+          onClick={() => {
+            setShowScheduledOnly(true)
+            setSelectedList(null)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📆</span>
+          <span className="mobile-nav-label">Programadas</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showCalendar ? 'active' : ''}`}
+          onClick={() => {
+            setShowCalendar(!showCalendar)
+            setShowScheduledOnly(false)
+            setShowStats(false)
+            setShowListModal(false)
+          }}
+        >
+          <span className="mobile-nav-icon">📅</span>
+          <span className="mobile-nav-label">Calendario</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showStats ? 'active' : ''}`}
+          onClick={() => {
+            setShowStats(!showStats)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowListModal(false)
+          }}
+        >
+          <span className="mobile-nav-icon">📊</span>
+          <span className="mobile-nav-label">Stats</span>
+        </button>
+      </div>
       </main>
     </>
   )
