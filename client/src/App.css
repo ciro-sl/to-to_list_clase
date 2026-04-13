@@ -1596,6 +1596,58 @@ body {
     50% { transform: scale(1.02); box-shadow: 0 8px 24px rgba(255, 193, 7, 0.4); }
 }
 
+/* ================= ESTILOS PARA ESCRITORIO EN MODAL DE TAREA ================= */
+
+.input-group.floating .mobile-char-counter {
+    position: absolute;
+    right: 10px;
+    bottom: -20px;
+    font-size: 11px;
+    color: #b2bec3;
+}
+
+.input-group.floating input:focus ~ .mobile-char-counter,
+.input-group.floating textarea:focus ~ .mobile-char-counter {
+    color: #667eea;
+}
+
+.mobile-error {
+    background: #ffe5e5;
+    color: #e74c3c;
+    padding: 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.mobile-submit-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-top: 20px;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.mobile-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.mobile-submit-btn:active {
+    transform: scale(0.98);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .notification-bar { top: 15px; right: 15px; }

@@ -1367,7 +1367,7 @@ function App() {
         
         {/* ================= MODAL DE CREAR TAREA REDISEÑADO ================= */}
 <div className={`modal-overlay ${showModal ? 'active' : ''}`} onClick={closeModal}>
-  <div className="modal task-modal modern-mobile" onClick={e => e.stopPropagation()}>
+  <div className="modal task-modal enhanced" onClick={e => e.stopPropagation()}>
     <div className="modal-header">
       <h3>
         <span className="modal-icon">✨</span>
@@ -1375,66 +1375,63 @@ function App() {
       </h3>
       <button className="modal-close" onClick={closeModal}>✕</button>
     </div>
-    <div className="modal-form mobile-form">
-      <div className="mobile-input-group">
-        <label className="mobile-label">📝 Título</label>
+    <div className="modern-form">
+      <div className="input-group floating">
         <input
           type="text"
-          placeholder="Ej: Terminar el proyecto"
+          placeholder=" "
           value={newTaskTitle}
           onChange={(e) => setNewTaskTitle(e.target.value)}
           maxLength={50}
           autoFocus
-          className="mobile-input"
         />
+        <label>📝 Título</label>
         <span className="mobile-char-counter">{newTaskTitle.length}/50</span>
       </div>
 
-      <div className="mobile-input-group">
-        <label className="mobile-label">📄 Descripción</label>
+      <div className="input-group floating">
         <textarea
-          placeholder="Detalles de la tarea..."
+          placeholder=" "
           value={newTaskDesc}
           onChange={(e) => setNewTaskDesc(e.target.value)}
           maxLength={100}
           rows="3"
-          className="mobile-textarea"
         />
+        <label>📄 Descripción</label>
         <span className="mobile-char-counter">{newTaskDesc.length}/100</span>
       </div>
 
-      <div className="mobile-row">
-        <div className="mobile-input-group half">
-          <label className="mobile-label">📅 Fecha</label>
+      <div className="form-row-modern">
+        <div className="input-group floating half">
           <input
             type="date"
             value={newTaskDate}
             onChange={(e) => setNewTaskDate(e.target.value)}
             min={new Date().toISOString().split('T')[0]}
-            className="mobile-input"
           />
+          <label>📅 Fecha</label>
         </div>
 
-        <div className="mobile-input-group half">
-          <label className="mobile-label">🎯 Prioridad</label>
-          <div className="mobile-priority-buttons">
+        <div className="priority-selector">
+          <label>🎯 Prioridad</label>
+          <div className="priority-buttons">
             <button
               type="button"
-              className={`mobile-priority baja ${newTaskPriority === 'baja' ? 'active' : ''}`}
+              className={`priority-option baja ${newTaskPriority === 'baja' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('baja')}
             >
               🟢 Baja
             </button>
             <button
               type="button"
-              className={`mobile-priority media ${newTaskPriority === 'media' ? 'active' : ''}`}
+              className={`priority-option media ${newTaskPriority === 'media' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('media')}
             >
               🟡 Media
             </button>
             <button
               type="button"
-              className={`mobile-priority alta ${newTaskPriority === 'alta' ? 'active' : ''}`}
+              className={`priority-option alta ${newTaskPriority === 'alta' ? 'active' : ''}`}
               onClick={() => setNewTaskPriority('alta')}
             >
               🔴 Alta
@@ -1443,26 +1440,24 @@ function App() {
         </div>
       </div>
 
-      <div className="mobile-row">
-        <div className="mobile-input-group half">
-          <label className="mobile-label">⏰ Inicio</label>
+      <div className="form-row-modern">
+        <div className="input-group floating half">
           <input
             type="time"
             value={newTaskStartTime}
             onChange={(e) => setNewTaskStartTime(e.target.value)}
             step="600"
-            className="mobile-input"
           />
+          <label>⏰ Inicio</label>
         </div>
-        <div className="mobile-input-group half">
-          <label className="mobile-label">⏰ Fin</label>
+        <div className="input-group floating half">
           <input
             type="time"
             value={newTaskEndTime}
             onChange={(e) => setNewTaskEndTime(e.target.value)}
             step="600"
-            className="mobile-input"
           />
+          <label>⏰ Fin</label>
         </div>
       </div>
 
