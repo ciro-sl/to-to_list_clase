@@ -301,7 +301,7 @@ app.use(express.static('.'));
 
 // Ruta principal - Sirve el archivo x.html
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/x.html');
+    res.sendFile(__dirname + '/client/index.html');
 });
 
 // 7. INICIAR EL SERVIDOR
