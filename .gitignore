@@ -1,0 +1,26 @@
+# Node modules
+/node_modules/
+/client/node_modules/
+
+# Android / Gradle build
+/android/.gradle/
+/android/app/build/
+/android/build/
+.gradle/
+build/
+
+# Local files and generated assets
+*.log
+*.tmp
+*.bak
+.DS_Store
+
+# Keystores and local secrets
+*.jks
+*.keystore
+
+# Database files
+*.db
+
+env
+.env
