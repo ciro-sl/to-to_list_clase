@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { LocalNotifications } from '@capacitor/local-notifications'
-import './App.css'
+import './AppModern.css'
+import { launchConfetti, ConfettiCelebration } from './ConfettiCelebration.jsx'
 
 // ================= UTILIDADES DE FECHA Y HORA =================
 
-// Obtener fecha en formato YYYY-MM-DD para evitar problemas de zona horaria
 const getLocalDateString = (date) => {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -12,7 +12,6 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`
 }
 
-// Formatear fecha para mostrar (DD/MM/YYYY)
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const [year, month, day] = dateString.split('-').map(Number)
@@ -20,13 +19,11 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// Formatear hora (HH:MM)
 const formatTime = (timeString) => {
   if (!timeString) return ''
   return timeString.substring(0, 5)
 }
 
-// Formatear tiempo restante hasta la tarea
 const formatTimeRemaining = (targetDate, targetTime) => {
   if (!targetDate || !targetTime) return null
   
@@ -105,188 +102,14 @@ const isTaskUrgent = (task) => {
   return diff > 0 && diff <= 60 * 60 * 1000
 }
 
-// ================= SISTEMA DE NOTIFICACIONES ROBUSTO =================
-
-let notificationChannelReady = false;
-let notificationListenerInitialized = false;
-
-const NotificationService = {
-  async initialize() {
-    try {
-      const permissionResult = await LocalNotifications.requestPermissions();
-      if (permissionResult.receive !== 'granted') {
-        console.log('🔕 Permisos denegados');
-        return false;
-      }
-      
-      await LocalNotifications.createChannel({
-        id: 'cenit-task-channel',
-        name: 'Cenit Tareas',
-        description: 'Recordatorios de tareas - Cenit App',
-        importance: 5,
-        visibility: 1,
-        sound: 'default',
-        vibration: true,
-        lights: true,
-        bypassDnd: true,
-        enableWakeLock: true
-      });
-      
-      await LocalNotifications.createChannel({
-        id: 'cenit-urgent-channel',
-        name: 'Cenit Urgentes',
-        description: 'Notificaciones importantes de tareas',
-        importance: 5,
-        visibility: 1,
-        sound: 'default',
-        vibration: true,
-        lights: true,
-        bypassDnd: true,
-        enableWakeLock: true
-      });
-      
-      if (!notificationListenerInitialized) {
-        await LocalNotifications.addListener('notification', (notification) => {
-          console.log('🔔 Notificación recibida:', notification);
-        });
-        
-        await LocalNotifications.addListener('actionPerformed', (notification) => {
-          console.log('🔔 Acción realizada:', notification);
-        });
-        
-        notificationListenerInitialized = true;
-      }
-      
-      notificationChannelReady = true;
-      console.log('✅ Sistema de notificaciones inicializado');
-      return true;
-    } catch (error) {
-      console.error('Error inicializando notificaciones:', error);
-      return false;
-    }
-  },
-
-  async schedule(task) {
-    if (!notificationChannelReady) {
-      await this.initialize();
-    }
-
-    if (!task.date || !task.startTime || task.completed) {
-      return;
-    }
-
-    try {
-      const [year, month, day] = task.date.split('-').map(Number);
-      const [hours, minutes] = task.startTime.split(':').map(Number);
-      const taskTime = new Date(year, month - 1, day, hours, minutes).getTime();
-      const now = Date.now();
-      const delay = taskTime - now;
-
-      if (delay <= 0) return;
-
-      const notifications = [];
-      const baseId = task.id;
-      const channelId = task.priority === 'alta' ? 'cenit-urgent-channel' : 'cenit-task-channel';
-      
-      await this.cancel(baseId);
-      
-      notifications.push({
-        id: baseId,
-        title: `⏰ ${task.title}`,
-        body: `Comienza a las ${task.startTime}`,
-        schedule: { at: new Date(taskTime), allowWhileIdle: true },
-        sound: 'default',
-        channelId: channelId,
-        extra: { taskId: task.id, type: 'task-start' }
-      });
-
-      if (delay > 5 * 60 * 1000) {
-        notifications.push({
-          id: baseId + 50000,
-          title: `⏰ ${task.title}`,
-          body: `Comienza en 5 minutos`,
-          schedule: { at: new Date(taskTime - 5 * 60 * 1000), allowWhileIdle: true },
-          sound: 'default',
-          channelId: channelId,
-          extra: { taskId: task.id, type: 'reminder-5min' }
-        });
-      }
-
-      if (delay > 60 * 60 * 1000) {
-        notifications.push({
-          id: baseId + 60000,
-          title: `📅 Recordatorio: ${task.title}`,
-          body: `Comienza en 1 hora`,
-          schedule: { at: new Date(taskTime - 60 * 60 * 1000), allowWhileIdle: true },
-          sound: 'default',
-          channelId: channelId,
-          extra: { taskId: task.id, type: 'reminder-1hour' }
-        });
-      }
-
-      if (delay > 24 * 60 * 60 * 1000) {
-        notifications.push({
-          id: baseId + 86400,
-          title: `📅 ${task.title}`,
-          body: `Programado para mañana a las ${task.startTime}`,
-          schedule: { at: new Date(taskTime - 24 * 60 * 60 * 1000), allowWhileIdle: true },
-          sound: 'default',
-          channelId: channelId,
-          extra: { taskId: task.id, type: 'reminder-tomorrow' }
-        });
-      }
-
-      await LocalNotifications.schedule({ notifications });
-      console.log(`🔔 Notificaciones programadas: ${notifications.length}`);
-    } catch (error) {
-      console.error('Error programando notificaciones:', error);
-    }
-  },
-
-  async cancel(taskId) {
-    try {
-      const pending = await LocalNotifications.getPending();
-      if (pending?.notifications) {
-        const toCancel = pending.notifications.filter(n => 
-          n.id === taskId || n.id === taskId + 50000 || n.id === taskId + 60000 || n.id === taskId + 86400
-        );
-        if (toCancel.length > 0) {
-          await LocalNotifications.cancel({ notifications: toCancel });
-        }
-      }
-    } catch (error) {
-      console.error('Error cancelando notificaciones:', error);
-    }
-  },
-  
-  async showImmediate(title, body) {
-    if (!notificationChannelReady) {
-      await this.initialize();
-    }
-    
-    try {
-      await LocalNotifications.schedule({
-        notifications: [{
-          id: Date.now(),
-          title: title,
-          body: body,
-          sound: 'default',
-          channelId: 'cenit-task-channel'
-        }]
-      });
-    } catch (error) {
-      console.error('Error mostrando notificación inmediata:', error);
-    }
-  }
-};
-
 // ================= FUNCIONES PARA TAREAS REPETIBLES =================
 
 const getDaysOfWeek = () => {
   const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
   const today = new Date()
-  const currentDay = today.getDay()
+  const currentDay = today.getDay() // 0 = domingo, 1 = lunes, etc.
   
+  // Reordenar para que empiece desde hoy
   const reorderedDays = []
   for (let i = currentDay === 0 ? 6 : currentDay - 1; i < days.length; i++) {
     reorderedDays.push(days[i])
@@ -302,8 +125,13 @@ const getDaysOfWeek = () => {
 
 const getDateForDayOfWeek = (dayName) => {
   const daysMap = {
-    'lunes': 1, 'martes': 2, 'miercoles': 3,
-    'jueves': 4, 'viernes': 5, 'sabado': 6, 'domingo': 0
+    'lunes': 1,
+    'martes': 2,
+    'miercoles': 3,
+    'jueves': 4,
+    'viernes': 5,
+    'sabado': 6,
+    'domingo': 0
   }
   
   const today = new Date()
@@ -311,12 +139,18 @@ const getDateForDayOfWeek = (dayName) => {
   const currentDay = today.getDay()
   
   let daysToAdd = targetDay - currentDay
-  if (daysToAdd <= 0) daysToAdd += 7
+  if (daysToAdd <= 0) {
+    daysToAdd += 7
+  }
   
   const targetDate = new Date(today)
   targetDate.setDate(today.getDate() + daysToAdd)
   
-  return getLocalDateString(targetDate)
+  const year = targetDate.getFullYear()
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+  const day = String(targetDate.getDate()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}`
 }
 
 const generateRepeatedTasks = (baseTask, repeatType, repeatDays) => {
@@ -413,7 +247,7 @@ const EnhancedNotificationSystem = ({ tasks, onTaskClick }) => {
         
         oscillator.start(audioContext.currentTime)
         oscillator.stop(audioContext.currentTime + 0.3)
-      } catch (e) {
+      } catch {
         console.log('Audio not supported')
       }
     }
@@ -635,7 +469,10 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose, onNotifi
   }
   
   const getTasksForDate = (date) => {
-    const dateStr = getLocalDateString(date)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     return tasks.filter(task => task.date === dateStr)
   }
   
@@ -655,7 +492,10 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose, onNotifi
   }
   
   const handleDateClick = (date) => {
-    const dateStr = getLocalDateString(date)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     const tasksOnDate = getTasksForDate(date)
     
     if (tasksOnDate.length > 0) {
@@ -748,7 +588,7 @@ const EnhancedCalendar = ({ tasks, onSelectDate, selectedDate, onClose, onNotifi
   )
 }
 
-// ================= FUNCIÓN EXPORTAR EXCEL =================
+// ================= FUNCION EXPORTAR EXCEL =================
 
 const exportToExcel = (tasks, lists) => {
   import('xlsx').then((XLSX) => {
@@ -809,7 +649,13 @@ const exportToExcel = (tasks, lists) => {
     const worksheet = XLSX.utils.aoa_to_sheet(allData)
 
     const colWidths = [
-      { wch: 30 }, { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 15 }
     ]
     worksheet['!cols'] = colWidths
 
@@ -991,7 +837,6 @@ function App() {
   
   initializeIds(initialLists)
   
-  // ================= ESTADOS PRINCIPALES =================
   const [tasks, setTasks] = useState(() => loadFromStorage(STORAGE_KEY_TASKS, []))
   const [completedTasks, setCompletedTasks] = useState(() => loadFromStorage('cenit_completed_tasks', []))
   const [lists, setLists] = useState(initialLists)
@@ -1030,52 +875,20 @@ function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [showCompletedTasks, setShowCompletedTasks] = useState(false)
   const [repeatOpen, setRepeatOpen] = useState(false)
-  const [reminderType, setReminderType] = useState('multiple') // 'simple' o 'multiple'
-
-  // ================= EFECTOS DE INICIALIZACIÓN =================
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [greeting, setGreeting] = useState('')
+  const [animatedStats, setAnimatedStats] = useState({
+    completed: 0,
+    pending: 0,
+    scheduled: 0,
+    urgent: 0
+  })
+  const [currentView, setCurrentView] = useState('tasks')
   
-  // Cerrar menú móvil al hacer clic fuera
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (mobileMenuOpen && window.innerWidth <= 768) {
-        const sidebar = document.querySelector('.sidebar');
-        const menuToggle = document.querySelector('.mobile-menu-toggle');
-        if (sidebar && !sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
-          setMobileMenuOpen(false);
-        }
-      }
-    };
-
-    if (mobileMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [mobileMenuOpen]);
-
-  // Pantalla de bienvenida (splash)
   useEffect(() => {
     const timer = setTimeout(() => setIsSplashVisible(false), 2200)
     return () => clearTimeout(timer)
   }, [])
-
-  // Inicializar notificaciones al cargar la app
-  useEffect(() => {
-    const init = async () => {
-      await NotificationService.initialize()
-      const activeTasks = tasks.filter(t => !t.completed && t.date && t.startTime)
-      for (const task of activeTasks) {
-        await NotificationService.schedule(task)
-      }
-    }
-    if (tasks.length > 0) {
-      init()
-    }
-  }, [tasks.length])
   
   // Reloj en tiempo real
   useEffect(() => {
@@ -1083,16 +896,79 @@ function App() {
     return () => clearInterval(timer)
   }, [])
 
+  // Saludo personalizado y estadísticas animadas
+  useEffect(() => {
+    const hour = new Date().getHours()
+    let greetingText = '¡Hola!'
+
+    if (hour >= 6 && hour < 12) {
+      greetingText = '¡Buenos días! 🌅'
+    } else if (hour >= 12 && hour < 18) {
+      greetingText = '¡Buenas tardes! ☀️'
+    } else if (hour >= 18 && hour < 22) {
+      greetingText = '¡Buenas noches! 🌙'
+    } else {
+      greetingText = '¡Buenas noches! 🌙'
+    }
+
+    setGreeting(greetingText)
+
+    // Animar estadísticas
+    const stats = stats
+    const animateValue = (start, end, setValue) => {
+      const duration = 1000
+      const increment = (end - start) / (duration / 16)
+      let current = start
+
+      const timer = setInterval(() => {
+        current += increment
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+          setValue(end)
+          clearInterval(timer)
+        } else {
+          setValue(Math.floor(current))
+        }
+      }, 16)
+    }
+
+    setTimeout(() => {
+      animateValue(0, stats.completadas, (val) => setAnimatedStats(prev => ({ ...prev, completed: val })))
+      animateValue(0, stats.pendientes, (val) => setAnimatedStats(prev => ({ ...prev, pending: val })))
+      animateValue(0, stats.conFecha, (val) => setAnimatedStats(prev => ({ ...prev, scheduled: val })))
+      animateValue(0, stats.urgentes, (val) => setAnimatedStats(prev => ({ ...prev, urgent: val })))
+    }, 300)
+  }, [stats])
+
+  // Programar notificaciones para tareas existentes
+  useEffect(() => {
+    const scheduleExistingNotifications = async () => {
+      try {
+        // Cancelar todas las notificaciones existentes primero
+        const pending = await LocalNotifications.getPending()
+        if (pending.notifications.length > 0) {
+          await LocalNotifications.cancel({ notifications: pending.notifications })
+        }
+        
+        // Programar notificaciones para tareas activas con fecha y hora
+        tasks.filter(t => !t.completed && t.date && t.startTime).forEach(task => {
+          scheduleNotification(task)
+        })
+      } catch (error) {
+        console.error('Error scheduling existing notifications:', error)
+      }
+    }
+    
+    scheduleExistingNotifications()
+  }, [tasks])
+
   // Función para mover tareas programadas a Tareas Generales
-  const moveScheduledTasksToGeneral = () => {
+  const moveScheduledTasksToGeneral = useCallback(() => {
     const today = getLocalDateString(new Date())
-    let movedCount = 0
     const movedTasks = []
     
     setTasks(prevTasks => {
       const updatedTasks = prevTasks.map(task => {
         if (task.isScheduled && task.scheduledFor && task.scheduledFor <= today) {
-          movedCount++
           movedTasks.push(task.title)
           return {
             ...task,
@@ -1112,20 +988,19 @@ function App() {
       
       return updatedTasks
     })
-  }
+  }, [showNotification])
   
   // Ejecutar al cargar la app y cada hora
   useEffect(() => {
     moveScheduledTasksToGeneral()
     const interval = setInterval(moveScheduledTasksToGeneral, 3600000)
     return () => clearInterval(interval)
-  }, [])
+  }, [moveScheduledTasksToGeneral])
   
   useEffect(() => {
     moveScheduledTasksToGeneral()
-  }, [tasks.length])
+  }, [tasks.length, moveScheduledTasksToGeneral])
 
-  // Guardar en localStorage
   useEffect(() => {
     saveToStorage(STORAGE_KEY_TASKS, tasks)
   }, [tasks])
@@ -1138,13 +1013,12 @@ function App() {
     saveToStorage(STORAGE_KEY_LISTS, lists)
   }, [lists])
   
-  // Mostrar notificación temporal en pantalla
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 4000)
   }
   
-  // ================= TAREAS A MOSTRAR (FILTRADO) =================
+  // Tareas a mostrar
   const displayedTasks = useMemo(() => {
     const today = getLocalDateString(new Date())
     
@@ -1184,7 +1058,7 @@ function App() {
     return result
   }, [tasks, completedTasks, selectedList, filter, selectedDate, showScheduledOnly, showCompletedTasks])
   
-  // ================= ESTADÍSTICAS =================
+  // Estadísticas
   const stats = useMemo(() => {
     const today = getLocalDateString(new Date())
     const activeTasks = tasks.filter(t => !(t.isScheduled && t.scheduledFor && t.scheduledFor > today))
@@ -1198,9 +1072,9 @@ function App() {
     const scheduledCount = tasks.filter(t => t.isScheduled && t.scheduledFor && t.scheduledFor > today).length
     const completedCount = completedTasks.length
     return { total, completadas, pendientes, conFecha, incumplidas, urgentes, scheduledCount, completedCount }
-  }, [tasks, completedTasks, selectedList, liveClock])
+  }, [tasks, completedTasks, selectedList])
   
-  // ================= DATOS PARA GRÁFICAS =================
+  // Datos para gráfica de tendencia semanal
   const weeklyTrendData = useMemo(() => {
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
     const completed = new Array(7).fill(0)
@@ -1230,10 +1104,10 @@ function App() {
     }))
   }, [tasks])
   
+  // Datos para gráfica de tendencia mensual (últimas 4 semanas)
   const monthlyTrendData = useMemo(() => {
     const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4']
     const completed = new Array(4).fill(0)
-    const pending = new Array(4).fill(0)
     const now = new Date()
     
     tasks.forEach(task => {
@@ -1253,7 +1127,6 @@ function App() {
     }))
   }, [tasks])
 
-  // ================= PANTALLA DE BIENVENIDA (SPLASH) =================
   if (isSplashVisible) {
     return (
       <div className="app-splash">
@@ -1270,7 +1143,7 @@ function App() {
     )
   }
   
-  // ================= VALIDACIONES =================
+  // Validaciones
   const validarCrearLista = () => {
     if (!newListName.trim()) {
       showNotification('⚠️ Por favor ingrese un nombre para la lista', 'error')
@@ -1332,9 +1205,34 @@ function App() {
     return true
   }
   
-  // ================= FUNCIONES CRUD =================
+  // Función para programar notificaciones locales
+  const scheduleNotification = async (task) => {
+    if (!task.date || !task.startTime) return
+    
+    try {
+      // Calcular la fecha y hora de la notificación (5 minutos antes)
+      const taskDateTime = new Date(`${task.date}T${task.startTime}`)
+      const notificationTime = new Date(taskDateTime.getTime() - 5 * 60 * 1000) // 5 minutos antes
+      
+      if (notificationTime <= new Date()) return // No programar si ya pasó
+      
+      await LocalNotifications.schedule({
+        notifications: [{
+          title: `⏰ Recordatorio: ${task.title}`,
+          body: task.description ? task.description : 'Tienes una tarea pendiente',
+          id: task.id,
+          schedule: { at: notificationTime },
+          sound: 'default',
+          actionTypeId: 'OPEN_TASK',
+          extra: { taskId: task.id }
+        }]
+      })
+    } catch (error) {
+      console.error('Error scheduling notification:', error)
+    }
+  }
   
-  // Crear nueva lista
+  // Funciones CRUD
   const crearLista = () => {
     if (!validarCrearLista()) return
     
@@ -1346,7 +1244,6 @@ function App() {
     showNotification('✅ Lista creada exitosamente', 'success')
   }
   
-  // Eliminar lista
   const eliminarLista = (id) => {
     if (id === 1) {
       showNotification('⚠️ No se puede eliminar la lista principal', 'error')
@@ -1359,26 +1256,23 @@ function App() {
     setDeleteListModal(null)
   }
   
-  // Abrir modal de crear tarea
   const openModal = () => {
     const today = getLocalDateString(new Date())
     setNewTaskTitle('')
     setNewTaskDesc('')
     setNewTaskPriority('baja')
-    setNewTaskDate(today)
-    setNewTaskStartTime('09:00')
-    setNewTaskEndTime('17:00')
+    setNewTaskDate(today) // Fecha por defecto: hoy
+    setNewTaskStartTime('09:00') // Hora inicio por defecto
+    setNewTaskEndTime('17:00') // Hora fin por defecto
     setRepeatType('none')
     setRepeatDays([])
-    setReminderType('multiple')
     setShowModal(true)
     showNotification('📅 Se asignó la fecha de hoy automáticamente', 'info')
   }
   
   const closeModal = () => setShowModal(false)
   
-  // Agregar nueva tarea (con recordatorios automáticos)
-  const agregarTarea = async () => {
+  const agregarTarea = () => {
     if (!validarCrearTarea()) return
     
     const today = getLocalDateString(new Date())
@@ -1396,8 +1290,7 @@ function App() {
       completed: false,
       createdAt: new Date().toISOString(),
       isScheduled: isFutureTask,
-      scheduledFor: isFutureTask ? newTaskDate : null,
-      reminderType: reminderType  // Guardar tipo de recordatorio
+      scheduledFor: isFutureTask ? newTaskDate : null
     }
     
     let tasksToAdd = [baseTask]
@@ -1409,10 +1302,8 @@ function App() {
     
     setTasks(prev => [...prev, ...tasksToAdd])
     
-    // Programar recordatorios para las nuevas tareas
-    for (const task of tasksToAdd) {
-      await NotificationService.schedule(task);
-    }
+    // Programar notificaciones para las nuevas tareas
+    tasksToAdd.forEach(task => scheduleNotification(task))
     
     if (repeatType === 'week') {
       showNotification(`🔁 Se crearon ${tasksToAdd.length} tareas repetidas para toda la semana`, 'success')
@@ -1426,39 +1317,47 @@ function App() {
       showNotification(`📅 Tarea programada para ${formatDate(newTaskDate)}. Aparecerá en "Tareas Programadas"`, 'info')
     } else {
       showNotification('✅ Tarea creada exitosamente', 'success')
+      // Mostrar confeti por crear tarea
+      launchConfetti()
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
     }
     
     closeModal()
   }
   
-  // Eliminar tarea (y sus notificaciones)
-  const eliminarTarea = async (id) => {
-    await NotificationService.cancel(id);
-    setTasks(prev => prev.filter(t => t.id !== id));
-    setDeleteModalTask(null);
-    showNotification('✅ Tarea eliminada exitosamente', 'success');
+  const eliminarTarea = (id) => {
+    LocalNotifications.cancel({ notifications: [{ id }] }).catch(() => {})
+    setTasks(prev => prev.filter(t => t.id !== id))
+    setDeleteModalTask(null)
+    showNotification('✅ Tarea eliminada exitosamente', 'success')
   }
   
-  // Completar tarea (archivar y cancelar notificaciones)
-  const completarTarea = async (task) => {
+  const completarTarea = (task) => {
     if (!task.completed) {
-      await NotificationService.cancel(task.id);
-      setTasks(prev => prev.filter(t => t.id !== task.id));
-      setCompletedTasks(prev => [...prev, { 
-        ...task, 
-        completed: true, 
-        completedAt: new Date().toISOString() 
-      }]);
-      showNotification('✅ Tarea completada y archivada', 'success');
+      LocalNotifications.cancel({ notifications: [{ id: task.id }] }).catch(() => {})
+      // Mover tarea a completadas
+      setTasks(prev => prev.filter(t => t.id !== task.id))
+      setCompletedTasks(prev => [...prev, {
+        ...task,
+        completed: true,
+        completedAt: new Date().toISOString()
+      }])
+      showNotification('✅ Tarea completada y archivada', 'success')
+
+      // Mostrar confeti y animación
+      launchConfetti()
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
     } else {
-      setCompletedTasks(prev => prev.filter(t => t.id !== task.id));
-      setTasks(prev => [...prev, { ...task, completed: false }]);
-      await NotificationService.schedule(task);
-      showNotification('🔄 Tarea restaurada a la lista activa', 'info');
+      // Si ya estaba completada, restaurar a activas
+      setCompletedTasks(prev => prev.filter(t => t.id !== task.id))
+      setTasks(prev => [...prev, { ...task, completed: false }])
+      scheduleNotification(task) // Reprogramar si se restaura
+      showNotification('🔄 Tarea restaurada a la lista activa', 'info')
     }
   }
   
-  // Iniciar edición de tarea
   const iniciarEditar = (task) => {
     setEditingTask(task.id)
     setEditTitle(task.title)
@@ -1469,8 +1368,7 @@ function App() {
     setEditEndTime(task.endTime || '')
   }
   
-  // Guardar edición de tarea (reprogramar notificaciones)
-  const guardarEdicion = async (id) => {
+  const guardarEdicion = (id) => {
     if (!validarEditarTarea()) return
     
     setTasks(prev => prev.map(t => 
@@ -1485,16 +1383,16 @@ function App() {
       } : t
     ))
     
+    // Reprogramar notificación para la tarea editada
     const updatedTask = {
       id,
       title: editTitle,
       description: editDesc,
       date: editDate,
-      startTime: editStartTime,
-      endTime: editEndTime
+      startTime: editStartTime
     }
-    await NotificationService.cancel(id);
-    await NotificationService.schedule(updatedTask);
+    LocalNotifications.cancel({ notifications: [{ id }] }).catch(() => {})
+    scheduleNotification(updatedTask)
     
     setEditingTask(null)
     showNotification('✅ Tarea actualizada exitosamente', 'success')
@@ -1502,14 +1400,16 @@ function App() {
   
   const cancelarEdicion = () => setEditingTask(null)
   
-  // Manejar selección de fecha en calendario
   const handleDateSelect = (date) => {
     setShowCalendar(false)
     setShowScheduledOnly(false)
     setFilter('todas')
     setSelectedDate(date)
     
-    const dateStr = getLocalDateString(date)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
     const tasksOnDate = tasks.filter(t => t.date === dateStr)
     
     if (tasksOnDate.length > 0) {
@@ -1529,11 +1429,9 @@ function App() {
   
   const clearDateFilter = () => setSelectedDate(null)
   
-  // Restaurar tarea completada
-  const restaurarTareaCompletada = async (task) => {
+  const restaurarTareaCompletada = (task) => {
     setCompletedTasks(prev => prev.filter(t => t.id !== task.id))
     setTasks(prev => [...prev, { ...task, completed: false, completedAt: null }])
-    await NotificationService.schedule(task)
     showNotification('🔄 Tarea restaurada a la lista activa', 'info')
   }
   
@@ -1542,7 +1440,6 @@ function App() {
     showNotification('🗑️ Tarea eliminada permanentemente', 'info')
   }
   
-  // Mostrar vistas
   const showCompletedTasksView = () => {
     setShowCompletedTasks(true)
     setShowScheduledOnly(false)
@@ -1577,11 +1474,10 @@ function App() {
     if (!task.date || !task.endTime || task.completed) return null
     return formatTimeRemaining(task.date, task.endTime)
   }
-
-  // ================= RENDER PRINCIPAL =================
+  
   return (
     <>
-      {/* Sistema de notificaciones en la interfaz */}
+      <ConfettiCelebration show={showConfetti} />
       <EnhancedNotificationSystem
         tasks={tasks}
         onTaskClick={(task) => {
@@ -1598,8 +1494,6 @@ function App() {
           }, 100)
         }}
       />
-      
-      {/* Botón de menú móvil */}
       <button
         className="mobile-menu-toggle"
         onClick={() => setMobileMenuOpen(prev => !prev)}
@@ -1609,7 +1503,6 @@ function App() {
         ☰
       </button>
 
-      {/* Sidebar (menú lateral) */}
       <aside className={`sidebar ${mobileMenuOpen ? 'open' : 'closed'}`}>
         <h2>📋 Mis Listas</h2>
 
@@ -1631,20 +1524,19 @@ function App() {
           </div>
         </div>
 
-        {/* Botón de Estadísticas */}
-        <div className="stats-sidebar-section">
-          <button
-            className={`stats-btn ${showStats ? 'active' : ''}`}
-            onClick={() => {
-              setShowStats(!showStats)
-              setMobileMenuOpen(false)
-            }}
-          >
-            {showStats ? '📊 Ocultar Estadísticas' : '📊 Ver Estadísticas'}
-          </button>
-        </div>
+       {/* Botón de Estadísticas/Gráficas - Toggle */}
+          <div className="stats-sidebar-section">
+            <button
+              className={`stats-btn ${showStats ? 'active' : ''}`}
+              onClick={() => {
+                setShowStats(!showStats)
+                setMobileMenuOpen(false)
+              }}
+                 >
+              {showStats ? '📊 Ocultar Estadísticas' : '📊 Ver Estadísticas'}
+            </button>
+          </div>
 
-        {/* Lista de listas */}
         <div className="contenedor-listas">
           {lists.map(list => (
             <div
@@ -1679,7 +1571,6 @@ function App() {
           </button>
         </div>
 
-        {/* Botón Calendario */}
         <div className="calendar-sidebar-section">
           <button className={`calendar-toggle-btn ${showCalendar ? 'active' : ''}`} onClick={() => {
             setShowCalendar(!showCalendar)
@@ -1689,7 +1580,6 @@ function App() {
           </button>
         </div>
 
-        {/* Botón Reporte */}
         <div className="reports-sidebar-section">
           <button className="report-btn" onClick={() => {
             setShowReport(true)
@@ -1699,15 +1589,65 @@ function App() {
           </button>
         </div>
 
-        {/* Widget de reloj */}
         <div className="clock-widget">
           <div className="clock-time">{liveClock.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</div>
           <div className="clock-date">{liveClock.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</div>
         </div>
       </aside>
 
-      {/* Contenido principal */}
       <main className="contenido-principal">
+        {/* Saludo personalizado */}
+        <div className="greeting-section">
+          <div className="greeting-text">{greeting}</div>
+          <div className="greeting-subtext">¿Listo para conquistar el día?</div>
+        </div>
+
+        {/* Estadísticas modernas */}
+        <div className="stats-section">
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-content">
+              <div className="stat-value animated-counter">{animatedStats.completed}</div>
+              <div className="stat-label">Completadas</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📝</div>
+            <div className="stat-content">
+              <div className="stat-value animated-counter">{animatedStats.pending}</div>
+              <div className="stat-label">Pendientes</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">📅</div>
+            <div className="stat-content">
+              <div className="stat-value animated-counter">{animatedStats.scheduled}</div>
+              <div className="stat-label">Programadas</div>
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">⚡</div>
+            <div className="stat-content">
+              <div className="stat-value animated-counter">{animatedStats.urgent}</div>
+              <div className="stat-label">Urgentes</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de progreso del día */}
+        <div className="progress-section">
+          <div className="progress-header">
+            <div className="progress-title">Progreso del día</div>
+            <div className="progress-percentage">{Math.round((stats.completadas / (stats.completadas + stats.pendientes)) * 100) || 0}%</div>
+          </div>
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${(stats.completadas / (stats.completadas + stats.pendientes)) * 100 || 0}%` }}
+            ></div>
+          </div>
+        </div>
+
         <div className="content-header">
           <h1>
             📋 {showCompletedTasks ? '✅ Tareas Completadas' : showScheduledOnly ? '📆 Tareas Programadas' : (listaActual?.name || 'Lista de Tareas')}
@@ -1728,7 +1668,6 @@ function App() {
           </h1>
         </div>
         
-        {/* Filtros y estadísticas */}
         <div className="controls-row">
           {!showCompletedTasks && (
             <div className="filtros">
@@ -1760,18 +1699,19 @@ function App() {
           </div>
         </div>
         
-        {/* Calendario */}
         {showCalendar && (
           <EnhancedCalendar tasks={tasks} onSelectDate={handleDateSelect} selectedDate={selectedDate} onClose={() => setShowCalendar(false)} onNotification={showNotification} />
         )}
         
-        {/* Lista de tareas */}
         <ul id="listatareas">
           {displayedTasks.length === 0 ? (
             <li className="sin-tareas">
-              <span>📭</span>
-              {showScheduledOnly ? 'No hay tareas programadas para fechas futuras' : 
-                selectedDate ? 'No hay tareas para este día' : 'No hay tareas en esta lista'}
+              <span>🎉</span>
+              <p>¡Todo listo! 🎉</p>
+              <p>¿Listo para triunfar?</p>
+              <button className="empty-cta" onClick={openModal}>
+                ✨ Crear primera tarea
+              </button>
             </li>
           ) : (
             displayedTasks.map(task => {
@@ -1808,51 +1748,63 @@ function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="tarea-content-wrapper">
-                      <div className="tarea-contenido">
-                        <span className="tarea-titulo">
-                          {task.title}
-                          {task.priority === 'alta' && <span className="prioridad prioridad-alta">🔴 Alta</span>}
-                          {task.priority === 'media' && <span className="prioridad prioridad-media">🟡 Media</span>}
-                          {task.priority === 'baja' && <span className="prioridad prioridad-baja">🟢 Baja</span>}
-                          {isOverdue && <span className="overdue-badge">⏰ VENCIDA</span>}
-                          {isUrgent && !isOverdue && <span className="urgent-badge">⚡ URGENTE</span>}
-                          {task.isScheduled && task.scheduledFor && (
-                            <span className="scheduled-badge-task">📅 Programada: {formatDate(task.scheduledFor)}</span>
-                          )}
-                        </span>
-                        {task.description && <span className="tarea-descripcion">{task.description}</span>}
-                        {(task.date || task.startTime || task.endTime) && (
-                          <span className="tarea-datetime">
-                            📅 {task.date ? formatDate(task.date) : 'Sin fecha'}
-                            {(task.startTime || task.endTime) && (
-                              <span className="time-range">🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}</span>
+                    <>
+                      {/* Icono de tarea */}
+                      <div className="task-icon">
+                        {task.priority === 'alta' ? '🔴' :
+                         task.priority === 'media' ? '🟡' :
+                         task.priority === 'baja' ? '🟢' : '📝'}
+                      </div>
+
+                      {/* Contenido de la tarea */}
+                      <div className="tarea-content-wrapper">
+                        <div className="tarea-contenido">
+                          <div className="tarea-titulo">
+                            {task.title}
+                            {task.priority === 'alta' && <span className="priority-badge">Alta</span>}
+                            {task.priority === 'media' && <span className="priority-badge">Media</span>}
+                            {task.priority === 'baja' && <span className="priority-badge">Baja</span>}
+                            {isOverdue && <span className="overdue-badge">⏰ VENCIDA</span>}
+                            {isUrgent && !isOverdue && <span className="urgent-badge">⚡ URGENTE</span>}
+                            {task.isScheduled && task.scheduledFor && (
+                              <span className="scheduled-badge-task">📅 Programada: {formatDate(task.scheduledFor)}</span>
                             )}
-                          </span>
-                        )}
-                        {timeInfo && !task.completed && (
-                          <span className={`time-remaining-badge ${timeInfo.overdue ? 'overdue' : timeInfo.urgent ? 'urgent' : ''}`}>
-                            {timeInfo.overdue ? '⏰ ' : '⏳ '}{timeInfo.text}
-                          </span>
-                        )}
+                          </div>
+                          {task.description && <div className="tarea-descripcion">{task.description}</div>}
+                          {(task.date || task.startTime || task.endTime) && (
+                            <div className="tarea-datetime">
+                              📅 {task.date ? formatDate(task.date) : 'Sin fecha'}
+                              {(task.startTime || task.endTime) && (
+                                <span className="time-range">🕐 {formatTime(task.startTime)} - {formatTime(task.endTime)}</span>
+                              )}
+                            </div>
+                          )}
+                          {timeInfo && !task.completed && (
+                            <div className={`time-remaining-badge ${timeInfo.overdue ? 'overdue' : timeInfo.urgent ? 'urgent' : ''}`}>
+                              {timeInfo.overdue ? '⏰ ' : '⏳ '}{timeInfo.text}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botones de acción */}
+                        <div className="botones-container">
+                          {showCompletedTasks ? (
+                            <>
+                              <button className="boton-restaurar" onClick={() => restaurarTareaCompletada(task)} title="Restaurar a lista activa">🔄</button>
+                              <button className="boton-eliminar" onClick={() => eliminarTareaCompletada(task)} title="Eliminar permanentemente">🗑️</button>
+                            </>
+                          ) : (
+                            <>
+                              <button className={`boton-completar ${task.completed ? 'completado' : ''}`} onClick={() => completarTarea(task)} title={task.completed ? 'Desmarcar' : 'Completar'}>
+                                {task.completed ? '↩️' : '✓'}
+                              </button>
+                              <button className="boton-editar" onClick={() => iniciarEditar(task)} title="Editar">✏️</button>
+                              <button className="boton-eliminar" onClick={() => setDeleteModalTask(task.id)} title="Eliminar">🗑️</button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="botones-container">
-                        {showCompletedTasks ? (
-                          <>
-                            <button className="boton-restaurar" onClick={() => restaurarTareaCompletada(task)} title="Restaurar a lista activa">🔄</button>
-                            <button className="boton-eliminar" onClick={() => eliminarTareaCompletada(task)} title="Eliminar permanentemente">🗑️</button>
-                          </>
-                        ) : (
-                          <>
-                            <button className={`boton-completar ${task.completed ? 'completado' : ''}`} onClick={() => completarTarea(task)} title={task.completed ? 'Desmarcar' : 'Completar'}>
-                              {task.completed ? '↩️' : '✓'}
-                            </button>
-                            <button className="boton-editar" onClick={() => iniciarEditar(task)} title="Editar">✏️</button>
-                            <button className="boton-eliminar" onClick={() => setDeleteModalTask(task.id)} title="Eliminar">🗑️</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    </>
                   )}
                 </li>
               )
@@ -1860,7 +1812,7 @@ function App() {
           )}
         </ul>
         
-        {/* Botón flotante para agregar tarea */}
+        {/* Botón flotante moderno para agregar tarea */}
         {!showCompletedTasks && (
           <button className="floating-btn" onClick={openModal}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1881,7 +1833,6 @@ function App() {
             </div>
             <div className="modal-body">
               <div className="mobile-form">
-                {/* Campo Título */}
                 <div className="mobile-input-group">
                   <label className="mobile-label">📝 Título</label>
                   <input
@@ -1896,7 +1847,6 @@ function App() {
                   <span className="mobile-char-counter">{newTaskTitle.length}/50</span>
                 </div>
 
-                {/* Campo Descripción */}
                 <div className="mobile-input-group">
                   <label className="mobile-label">📄 Descripción</label>
                   <textarea
@@ -1910,7 +1860,6 @@ function App() {
                   <span className="mobile-char-counter">{newTaskDesc.length}/100</span>
                 </div>
 
-                {/* Prioridad */}
                 <div className="mobile-input-group">
                   <label className="mobile-label">🎯 Prioridad</label>
                   <div className="mobile-priority-buttons">
@@ -1938,20 +1887,11 @@ function App() {
                   </div>
                 </div>
 
-                {/* Fecha */}
-                <div className="mobile-input-group">
-                  <label className="mobile-label">📅 Fecha</label>
-                  <div
-                    className="dropdown-field-wrapper"
-                    onClick={() => {
-                      const input = document.getElementById('new-task-date')
-                      input?.focus()
-                      input?.showPicker?.()
-                    }}
-                  >
+                <div className="mobile-row">
+                  <div className="mobile-input-group">
+                    <label className="mobile-label">📅 Fecha</label>
                     <input
-                      id="new-task-date"
-                      className="mobile-input dropdown-field"
+                      className="mobile-input"
                       type="date"
                       value={newTaskDate}
                       onChange={(e) => setNewTaskDate(e.target.value)}
@@ -1960,42 +1900,21 @@ function App() {
                   </div>
                 </div>
 
-                {/* Hora Inicio */}
-                <div className="mobile-input-group">
-                  <label className="mobile-label">⏰ Inicio</label>
-                  <div
-                    className="dropdown-field-wrapper"
-                    onClick={() => {
-                      const input = document.getElementById('new-task-start')
-                      input?.focus()
-                      input?.showPicker?.()
-                    }}
-                  >
+                <div className="mobile-row">
+                  <div className="mobile-input-group">
+                    <label className="mobile-label">⏰ Inicio</label>
                     <input
-                      id="new-task-start"
-                      className="mobile-input dropdown-field"
+                      className="mobile-input"
                       type="time"
                       value={newTaskStartTime}
                       onChange={(e) => setNewTaskStartTime(e.target.value)}
                       step="600"
                     />
                   </div>
-                </div>
-
-                {/* Hora Fin */}
-                <div className="mobile-input-group">
-                  <label className="mobile-label">⏰ Fin</label>
-                  <div
-                    className="dropdown-field-wrapper"
-                    onClick={() => {
-                      const input = document.getElementById('new-task-end')
-                      input?.focus()
-                      input?.showPicker?.()
-                    }}
-                  >
+                  <div className="mobile-input-group">
+                    <label className="mobile-label">⏰ Fin</label>
                     <input
-                      id="new-task-end"
-                      className="mobile-input dropdown-field"
+                      className="mobile-input"
                       type="time"
                       value={newTaskEndTime}
                       onChange={(e) => setNewTaskEndTime(e.target.value)}
@@ -2004,14 +1923,12 @@ function App() {
                   </div>
                 </div>
 
-                {/* Error de horas */}
                 {(newTaskStartTime && newTaskEndTime && newTaskStartTime >= newTaskEndTime) && (
                   <div className="mobile-error">
                     ⚠️ La hora de fin debe ser posterior
                   </div>
                 )}
 
-                {/* Sección de tareas repetitivas */}
                 <div className="repeat-section">
                   <button type="button" className="repeat-header" onClick={() => setRepeatOpen(prev => !prev)}>
                     <span>🔁 Repetir tarea</span>
@@ -2021,7 +1938,13 @@ function App() {
                   <div className={`repeat-options ${repeatOpen ? 'open' : ''}`}>
                     <div className="repeat-grid">
                       <label className={`repeat-option ${repeatType === 'none' ? 'active' : ''}`} onClick={() => setRepeatType('none')}>
-                        <input type="radio" name="repeatType" value="none" checked={repeatType === 'none'} onChange={(e) => setRepeatType(e.target.value)} />
+                        <input
+                          type="radio"
+                          name="repeatType"
+                          value="none"
+                          checked={repeatType === 'none'}
+                          onChange={(e) => setRepeatType(e.target.value)}
+                        />
                         <div className="repeat-option-content">
                           <div className="repeat-option-title">No repetir</div>
                           <div className="repeat-option-subtitle">Solo esta fecha</div>
@@ -2029,7 +1952,13 @@ function App() {
                       </label>
 
                       <label className={`repeat-option ${repeatType === 'week' ? 'active' : ''}`} onClick={() => setRepeatType('week')}>
-                        <input type="radio" name="repeatType" value="week" checked={repeatType === 'week'} onChange={(e) => setRepeatType(e.target.value)} />
+                        <input
+                          type="radio"
+                          name="repeatType"
+                          value="week"
+                          checked={repeatType === 'week'}
+                          onChange={(e) => setRepeatType(e.target.value)}
+                        />
                         <div className="repeat-option-content">
                           <div className="repeat-option-title">Todos los días</div>
                           <div className="repeat-option-subtitle">L M X J V S D</div>
@@ -2037,7 +1966,13 @@ function App() {
                       </label>
 
                       <label className={`repeat-option ${repeatType === 'weekdays' ? 'active' : ''}`} onClick={() => setRepeatType('weekdays')}>
-                        <input type="radio" name="repeatType" value="weekdays" checked={repeatType === 'weekdays'} onChange={(e) => setRepeatType(e.target.value)} />
+                        <input
+                          type="radio"
+                          name="repeatType"
+                          value="weekdays"
+                          checked={repeatType === 'weekdays'}
+                          onChange={(e) => setRepeatType(e.target.value)}
+                        />
                         <div className="repeat-option-content">
                           <div className="repeat-option-title">Laborables</div>
                           <div className="repeat-option-subtitle">Lun a Vie</div>
@@ -2045,7 +1980,13 @@ function App() {
                       </label>
 
                       <label className={`repeat-option ${repeatType === 'weekend' ? 'active' : ''}`} onClick={() => setRepeatType('weekend')}>
-                        <input type="radio" name="repeatType" value="weekend" checked={repeatType === 'weekend'} onChange={(e) => setRepeatType(e.target.value)} />
+                        <input
+                          type="radio"
+                          name="repeatType"
+                          value="weekend"
+                          checked={repeatType === 'weekend'}
+                          onChange={(e) => setRepeatType(e.target.value)}
+                        />
                         <div className="repeat-option-content">
                           <div className="repeat-option-title">Finde</div>
                           <div className="repeat-option-subtitle">Sáb y Dom</div>
@@ -2053,7 +1994,13 @@ function App() {
                       </label>
 
                       <label className={`repeat-option repeat-full-width ${repeatType === 'specific' ? 'active' : ''}`}>
-                        <input type="radio" name="repeatType" value="specific" checked={repeatType === 'specific'} onChange={(e) => setRepeatType(e.target.value)} />
+                        <input
+                          type="radio"
+                          name="repeatType"
+                          value="specific"
+                          checked={repeatType === 'specific'}
+                          onChange={(e) => setRepeatType(e.target.value)}
+                        />
                         <div className="repeat-option-content">
                           <div className="repeat-option-title">Días específicos</div>
                           <div className="repeat-option-subtitle">Elige los días de la semana</div>
@@ -2088,28 +2035,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* Selector de tipo de recordatorio */}
-                <div className="mobile-input-group">
-                  <label className="mobile-label">🔔 Recordatorios</label>
-                  <div className="reminder-buttons">
-                    <button
-                      type="button"
-                      className={`reminder-option ${reminderType === 'simple' ? 'active' : ''}`}
-                      onClick={() => setReminderType('simple')}
-                    >
-                      ⏰ Solo antes (5 min)
-                    </button>
-                    <button
-                      type="button"
-                      className={`reminder-option ${reminderType === 'multiple' ? 'active' : ''}`}
-                      onClick={() => setReminderType('multiple')}
-                    >
-                      🔔 Múltiples (8am,12pm,3pm,5pm)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Botón crear tarea */}
                 <button className="mobile-submit-btn" type="button" onClick={agregarTarea}>
                   <span>✨</span> Crear Tarea <span>→</span>
                 </button>
@@ -2118,112 +2043,145 @@ function App() {
           </div>
         </div>
 
-        {/* ===== MODAL DE LISTAS PARA MÓVIL ===== */}
-        <div className={`modal-overlay ${showListModal ? 'active' : ''}`} onClick={() => setShowListModal(false)}>
-          <div className="modal lists-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>📁 Mis Listas</h3>
-              <button className="modal-close" onClick={() => setShowListModal(false)}>✕</button>
-            </div>
-            <div className="lists-modal-content">
-              <div className="mobile-new-list">
-                <input
-                  type="text"
-                  placeholder="Nueva lista..."
-                  value={newListName}
-                  onChange={(e) => setNewListName(e.target.value)}
-                  maxLength={20}
-                  className="mobile-list-input"
-                />
-                <button type="button" onClick={crearLista} className="mobile-list-add">+</button>
-              </div>
+{/* ===== MODAL DE LISTAS PARA MÓVIL ===== */}
+<div className={`modal-overlay ${showListModal ? 'active' : ''}`} onClick={() => setShowListModal(false)}>
+  <div className="modal lists-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-header">
+      <h3>📁 Mis Listas</h3>
+      <button className="modal-close" onClick={() => setShowListModal(false)}>✕</button>
+    </div>
+    <div className="lists-modal-content">
+      <div className="mobile-new-list">
+        <input
+          type="text"
+          placeholder="Nueva lista..."
+          value={newListName}
+          onChange={(e) => setNewListName(e.target.value)}
+          maxLength={20}
+          className="mobile-list-input"
+        />
+        <button type="button" onClick={crearLista} className="mobile-list-add">+</button>
+      </div>
 
-              <div className="mobile-lists-container">
-                {lists.map(list => (
-                  <div 
-                    key={list.id} 
-                    className={`mobile-list-item ${selectedList === list.id ? 'active' : ''}`}
-                    onClick={() => {
-                      setSelectedList(list.id)
-                      setShowScheduledOnly(false)
-                      setShowListModal(false)
-                    }}
-                  >
-                    <div className="mobile-list-color" style={{ background: list.color }}></div>
-                    <span className="mobile-list-name">{list.name}</span>
-                    {list.id !== 1 && (
-                      <button 
-                        type="button"
-                        className="mobile-list-delete"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (window.confirm('¿Eliminar esta lista y todas sus tareas?')) {
-                            eliminarLista(list.id)
-                          }
-                        }}
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+      <div className="mobile-lists-container">
+        {lists.map(list => (
+          <div 
+            key={list.id} 
+            className={`mobile-list-item ${selectedList === list.id ? 'active' : ''}`}
+            onClick={() => {
+              setSelectedList(list.id)
+              setShowScheduledOnly(false)
+              setShowListModal(false)
+            }}
+          >
+            <div className="mobile-list-color" style={{ background: list.color }}></div>
+            <span className="mobile-list-name">{list.name}</span>
+            {list.id !== 1 && (
+              <button 
+                type="button"
+                className="mobile-list-delete"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (window.confirm('¿Eliminar esta lista y todas sus tareas?')) {
+                    eliminarLista(list.id)
+                  }
+                }}
+              >
+                🗑️
+              </button>
+            )}
           </div>
-        </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
 
-        {/* Modal Eliminar Tarea */}
-        <div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={() => setDeleteModalTask(null)}>
-          <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><h3>⚠️ Confirmar Eliminación</h3><button className="modal-close" onClick={() => setDeleteModalTask(null)}>✕</button></div>
-            <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta tarea?</p><p className="delete-warning">Esta acción no se puede deshacer.</p></div>
-            <div className="delete-modal-buttons">
-              <button className="cancelar-btn" onClick={() => setDeleteModalTask(null)}>✕ Cancelar</button>
-              <button className="confirmar-eliminar-btn" onClick={() => eliminarTarea(deleteModalTask)}>🗑️ Eliminar</button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Modal Eliminar Lista */}
-        <div className={`modal-overlay delete-modal-overlay ${deleteListModal ? 'active' : ''}`} onClick={() => setDeleteListModal(null)}>
-          <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header"><h3>⚠️ Eliminar Lista</h3><button className="modal-close" onClick={() => setDeleteListModal(null)}>✕</button></div>
-            <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta lista?</p><p className="delete-warning">Se eliminarán todas las tareas contenidas en ella. Esta acción no se puede deshacer.</p></div>
-            <div className="delete-modal-buttons">
-              <button className="cancelar-btn" onClick={() => setDeleteListModal(null)}>✕ Cancelar</button>
-              <button className="confirmar-eliminar-btn" onClick={() => eliminarLista(deleteListModal)}>🗑️ Eliminar Lista</button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Reporte */}
-        {showReport && <EnhancedReportModal tasks={tasks} lists={lists} onClose={() => setShowReport(false)} />}
-        
-        {/* Notificación flotante */}
-        {notification && <div className={`notification notification-${notification.type}`}>{notification.message}</div>}
+{/* Modal Eliminar Tarea */}
+<div className={`modal-overlay delete-modal-overlay ${deleteModalTask ? 'active' : ''}`} onClick={() => setDeleteModalTask(null)}>
+  <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-header"><h3>⚠️ Confirmar Eliminación</h3><button className="modal-close" onClick={() => setDeleteModalTask(null)}>✕</button></div>
+    <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta tarea?</p><p className="delete-warning">Esta acción no se puede deshacer.</p></div>
+    <div className="delete-modal-buttons">
+      <button className="cancelar-btn" onClick={() => setDeleteModalTask(null)}>✕ Cancelar</button>
+      <button className="confirmar-eliminar-btn" onClick={() => eliminarTarea(deleteModalTask)}>🗑️ Eliminar</button>
+      </div>
+    </div>
+  </div>
+  
+  {/* Modal Eliminar Lista */}
+  <div className={`modal-overlay delete-modal-overlay ${deleteListModal ? 'active' : ''}`} onClick={() => setDeleteListModal(null)}>
+    <div className="modal delete-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-header"><h3>⚠️ Eliminar Lista</h3><button className="modal-close" onClick={() => setDeleteListModal(null)}>✕</button></div>
+      <div className="delete-modal-content"><p>¿Estás seguro de que deseas eliminar esta lista?</p><p className="delete-warning">Se eliminarán todas las tareas contenidas en ella. Esta acción no se puede deshacer.</p></div>
+      <div className="delete-modal-buttons">
+        <button className="cancelar-btn" onClick={() => setDeleteListModal(null)}>✕ Cancelar</button>
+        <button className="confirmar-eliminar-btn" onClick={() => eliminarLista(deleteListModal)}>🗑️ Eliminar Lista</button>
+      </div>
+    </div>
+  </div>
+  
+  {showReport && <EnhancedReportModal tasks={tasks} lists={lists} onClose={() => setShowReport(false)} />}
+  
+  {notification && <div className={`notification notification-${notification.type}`}>{notification.message}</div>}
 
-        {/* ================= MODAL DE ESTADÍSTICAS ================= */}
+        {/* ================= MODAL DE ESTADÍSTICAS CON GRÁFICAS DE TENDENCIA ================= */}
         {showStats && (
           <div className="modal-overlay active" onClick={() => setShowStats(false)}>
             <div className="modal stats-modal enhanced" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>📊 Panel de Estadísticas</h3>
                 <div className="trend-toggle">
-                  <button className={`trend-btn ${trendView === 'week' ? 'active' : ''}`} onClick={() => setTrendView('week')}>📅 Semanal</button>
-                  <button className={`trend-btn ${trendView === 'month' ? 'active' : ''}`} onClick={() => setTrendView('month')}>📆 Mensual</button>
+                  <button 
+                    className={`trend-btn ${trendView === 'week' ? 'active' : ''}`}
+                    onClick={() => setTrendView('week')}
+                  >
+                    📅 Semanal
+                  </button>
+                  <button 
+                    className={`trend-btn ${trendView === 'month' ? 'active' : ''}`}
+                    onClick={() => setTrendView('month')}
+                  >
+                    📆 Mensual
+                  </button>
                 </div>
                 <button className="modal-close" onClick={() => setShowStats(false)}>✕</button>
               </div>
               <div className="stats-container">
+                
                 {/* Tarjetas de resumen */}
                 <div className="stats-cards">
-                  <div className="stat-card total"><div className="stat-icon">📋</div><div className="stat-info"><span className="stat-number">{tasks.length}</span><span className="stat-label">Total Tareas</span></div></div>
-                  <div className="stat-card completed"><div className="stat-icon">✅</div><div className="stat-info"><span className="stat-number">{tasks.filter(t => t.completed).length}</span><span className="stat-label">Completadas</span></div></div>
-                  <div className="stat-card pending"><div className="stat-icon">⏳</div><div className="stat-info"><span className="stat-number">{tasks.filter(t => !t.completed && !isTaskOverdue(t)).length}</span><span className="stat-label">Pendientes</span></div></div>
-                  <div className="stat-card overdue"><div className="stat-icon">⚠️</div><div className="stat-info"><span className="stat-number">{tasks.filter(t => isTaskOverdue(t)).length}</span><span className="stat-label">Vencidas</span></div></div>
+                  <div className="stat-card total">
+                    <div className="stat-icon">📋</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.length}</span>
+                      <span className="stat-label">Total Tareas</span>
+                    </div>
+                  </div>
+                  <div className="stat-card completed">
+                    <div className="stat-icon">✅</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => t.completed).length}</span>
+                      <span className="stat-label">Completadas</span>
+                    </div>
+                  </div>
+                  <div className="stat-card pending">
+                    <div className="stat-icon">⏳</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => !t.completed && !isTaskOverdue(t)).length}</span>
+                      <span className="stat-label">Pendientes</span>
+                    </div>
+                  </div>
+                  <div className="stat-card overdue">
+                    <div className="stat-icon">⚠️</div>
+                    <div className="stat-info">
+                      <span className="stat-number">{tasks.filter(t => isTaskOverdue(t)).length}</span>
+                      <span className="stat-label">Vencidas</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Gráfica de tendencia */}
+                {/* Gráfica de tendencia en espiral (evolución) */}
                 <div className="trend-chart-section">
                   <h4>📈 Evolución de Tareas {trendView === 'week' ? 'Semanal' : 'Mensual'}</h4>
                   <div className="spiral-trend">
@@ -2232,8 +2190,20 @@ function App() {
                         {weeklyTrendData.map((item, idx) => (
                           <div key={idx} className="spiral-bar-group">
                             <div className="spiral-bars">
-                              <div className="spiral-bar completed-bar" style={{ height: `${item.completedPercent}px` }} title={`Completadas: ${item.completed}`}><span className="bar-value">{item.completed}</span></div>
-                              <div className="spiral-bar pending-bar" style={{ height: `${item.pendingPercent}px` }} title={`Pendientes: ${item.pending}`}><span className="bar-value">{item.pending}</span></div>
+                              <div 
+                                className="spiral-bar completed-bar" 
+                                style={{ height: `${item.completedPercent}px` }}
+                                title={`Completadas: ${item.completed}`}
+                              >
+                                <span className="bar-value">{item.completed}</span>
+                              </div>
+                              <div 
+                                className="spiral-bar pending-bar" 
+                                style={{ height: `${item.pendingPercent}px` }}
+                                title={`Pendientes: ${item.pending}`}
+                              >
+                                <span className="bar-value">{item.pending}</span>
+                              </div>
                             </div>
                             <span className="spiral-label">{item.day}</span>
                           </div>
@@ -2245,7 +2215,13 @@ function App() {
                           const height = (item.completed / item.maxValue) * 80 || 0
                           return (
                             <div key={idx} className="month-bar-group">
-                              <div className="month-bar" style={{ height: `${height}px` }} title={`${item.week}: ${item.completed} tareas completadas`}><span className="month-value">{item.completed}</span></div>
+                              <div 
+                                className="month-bar" 
+                                style={{ height: `${height}px` }}
+                                title={`${item.week}: ${item.completed} tareas completadas`}
+                              >
+                                <span className="month-value">{item.completed}</span>
+                              </div>
                               <span className="month-label">{item.week}</span>
                             </div>
                           )
@@ -2253,64 +2229,239 @@ function App() {
                       </div>
                     )}
                   </div>
-                  <div className="trend-legend"><span className="legend-dot completed-dot"></span><span>Completadas</span><span className="legend-dot pending-dot"></span><span>Pendientes</span></div>
+                  <div className="trend-legend">
+                    <span className="legend-dot completed-dot"></span>
+                    <span>Completadas</span>
+                    <span className="legend-dot pending-dot"></span>
+                    <span>Pendientes</span>
+                  </div>
                 </div>
 
-                {/* Gráfica de progreso */}
+                {/* Gráfica de barras de progreso */}
                 <div className="chart-section">
                   <h4>📊 Progreso General</h4>
-                  <div className="progress-bar-container"><div className="progress-label"><span>✅ Completadas</span><span>{Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) || 0}%</span></div><div className="progress-bar-bg"><div className="progress-bar-fill completed-fill" style={{ width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100 || 0}%` }}></div></div></div>
-                  <div className="progress-bar-container"><div className="progress-label"><span>⏳ Pendientes</span><span>{Math.round((tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span></div><div className="progress-bar-bg"><div className="progress-bar-fill pending-fill" style={{ width: `${(tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}></div></div></div>
-                  <div className="progress-bar-container"><div className="progress-label"><span>⚠️ Vencidas</span><span>{Math.round((tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span></div><div className="progress-bar-bg"><div className="progress-bar-fill overdue-fill" style={{ width: `${(tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}></div></div></div>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>✅ Completadas</span>
+                      <span>{Math.round((tasks.filter(t => t.completed).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill completed-fill"
+                        style={{ width: `${(tasks.filter(t => t.completed).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>⏳ Pendientes</span>
+                      <span>{Math.round((tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill pending-fill"
+                        style={{ width: `${(tasks.filter(t => !t.completed && !isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div className="progress-label">
+                      <span>⚠️ Vencidas</span>
+                      <span>{Math.round((tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100) || 0}%</span>
+                    </div>
+                    <div className="progress-bar-bg">
+                      <div 
+                        className="progress-bar-fill overdue-fill"
+                        style={{ width: `${(tasks.filter(t => isTaskOverdue(t)).length / tasks.length) * 100 || 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Estadísticas por prioridad */}
                 <div className="priority-stats">
                   <h4>🎯 Tareas por Prioridad</h4>
                   <div className="priority-bars">
-                    <div className="priority-item alta"><span>🔴 Alta</span><div className="priority-bar-bg"><div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'alta').length / tasks.length) * 100 || 0}%` }}></div></div><span className="priority-count">{tasks.filter(t => t.priority === 'alta').length}</span></div>
-                    <div className="priority-item media"><span>🟡 Media</span><div className="priority-bar-bg"><div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'media').length / tasks.length) * 100 || 0}%` }}></div></div><span className="priority-count">{tasks.filter(t => t.priority === 'media').length}</span></div>
-                    <div className="priority-item baja"><span>🟢 Baja</span><div className="priority-bar-bg"><div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'baja').length / tasks.length) * 100 || 0}%` }}></div></div><span className="priority-count">{tasks.filter(t => t.priority === 'baja').length}</span></div>
+                    <div className="priority-item alta">
+                      <span>🔴 Alta</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'alta').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'alta').length}</span>
+                    </div>
+                    <div className="priority-item media">
+                      <span>🟡 Media</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'media').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'media').length}</span>
+                    </div>
+                    <div className="priority-item baja">
+                      <span>🟢 Baja</span>
+                      <div className="priority-bar-bg">
+                        <div className="priority-bar-fill" style={{ width: `${(tasks.filter(t => t.priority === 'baja').length / tasks.length) * 100 || 0}%` }}></div>
+                      </div>
+                      <span className="priority-count">{tasks.filter(t => t.priority === 'baja').length}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         )}
+      {/* ===== BARRA DE NAVEGACIÓN INFERIOR PARA MÓVIL (TABS) ===== */}
+      <div className="mobile-bottom-nav">
+        <button 
+          className={`mobile-nav-item ${!showScheduledOnly && !showCalendar && !showStats && !showListModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📋</span>
+          <span className="mobile-nav-label">Tareas</span>
+        </button>
 
-        {/* ===== BARRA DE NAVEGACIÓN INFERIOR PARA MÓVIL (TABS) ===== */}
-        <div className="mobile-bottom-nav">
-          <button className={`mobile-nav-item ${!showScheduledOnly && !showCalendar && !showStats && !showListModal && !showCompletedTasks ? 'active' : ''}`} onClick={() => { setShowScheduledOnly(false); setShowCalendar(false); setShowStats(false); setShowListModal(false); setShowCompletedTasks(false); setSelectedDate(null); }}>
-            <span className="mobile-nav-icon">📋</span>
-            <span className="mobile-nav-label">Tareas</span>
-          </button>
+        <button 
+          className={`mobile-nav-item ${showListModal ? 'active' : ''}`}
+          onClick={() => {
+            setShowListModal(true)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📁</span>
+          <span className="mobile-nav-label">Listas</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showScheduledOnly ? 'active' : ''}`}
+          onClick={() => {
+            setShowScheduledOnly(true)
+            setSelectedList(null)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">📆</span>
+          <span className="mobile-nav-label">Programadas</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showCalendar ? 'active' : ''}`}
+          onClick={() => {
+            setShowCalendar(!showCalendar)
+            setShowScheduledOnly(false)
+            setShowStats(false)
+            setShowListModal(false)
+          }}
+        >
+          <span className="mobile-nav-icon">📅</span>
+          <span className="mobile-nav-label">Calendario</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showStats ? 'active' : ''}`}
+          onClick={() => {
+            setShowStats(!showStats)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowListModal(false)
+            setShowCompletedTasks(false)
+          }}
+        >
+          <span className="mobile-nav-icon">📊</span>
+          <span className="mobile-nav-label">Stats</span>
+        </button>
+        
+        <button 
+          className={`mobile-nav-item ${showCompletedTasks ? 'active' : ''}`}
+          onClick={() => {
+            setShowCompletedTasks(true)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <span className="mobile-nav-icon">✅</span>
+          <span className="mobile-nav-label">Completadas</span>
+          {completedTasks.length > 0 && (
+            <span className="mobile-nav-badge">{completedTasks.length}</span>
+          )}
+        </button>
+      </div>
 
-          <button className={`mobile-nav-item ${showListModal ? 'active' : ''}`} onClick={() => { setShowListModal(true); setShowScheduledOnly(false); setShowCalendar(false); setShowStats(false); setShowCompletedTasks(false); setSelectedDate(null); }}>
-            <span className="mobile-nav-icon">📁</span>
-            <span className="mobile-nav-label">Listas</span>
-          </button>
-          
-          <button className={`mobile-nav-item ${showScheduledOnly ? 'active' : ''}`} onClick={() => { setShowScheduledOnly(true); setSelectedList(null); setShowCalendar(false); setShowStats(false); setShowListModal(false); setShowCompletedTasks(false); setSelectedDate(null); }}>
-            <span className="mobile-nav-icon">📆</span>
-            <span className="mobile-nav-label">Programadas</span>
-          </button>
-          
-          <button className={`mobile-nav-item ${showCalendar ? 'active' : ''}`} onClick={() => { setShowCalendar(!showCalendar); setShowScheduledOnly(false); setShowStats(false); setShowListModal(false); setShowCompletedTasks(false); }}>
-            <span className="mobile-nav-icon">📅</span>
-            <span className="mobile-nav-label">Calendario</span>
-          </button>
-          
-          <button className={`mobile-nav-item ${showStats ? 'active' : ''}`} onClick={() => { setShowStats(!showStats); setShowScheduledOnly(false); setShowCalendar(false); setShowListModal(false); setShowCompletedTasks(false); }}>
-            <span className="mobile-nav-icon">📊</span>
-            <span className="mobile-nav-label">Stats</span>
-          </button>
-          
-          <button className={`mobile-nav-item ${showCompletedTasks ? 'active' : ''}`} onClick={() => { setShowCompletedTasks(true); setShowScheduledOnly(false); setShowCalendar(false); setShowStats(false); setShowListModal(false); setSelectedDate(null); }}>
-            <span className="mobile-nav-icon">✅</span>
-            <span className="mobile-nav-label">Completadas</span>
-            {completedTasks.length > 0 && (<span className="mobile-nav-badge">{completedTasks.length}</span>)}
-          </button>
-        </div>
+      {/* Barra de navegación inferior moderna */}
+      <nav className="bottom-nav">
+        <button
+          className={`nav-item ${currentView === 'tasks' ? 'active' : ''}`}
+          onClick={() => {
+            setCurrentView('tasks')
+            setShowCompletedTasks(false)
+            setShowScheduledOnly(false)
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <div className="nav-icon">📝</div>
+          <div className="nav-label">Tareas</div>
+        </button>
+        <button
+          className={`nav-item ${currentView === 'calendar' ? 'active' : ''}`}
+          onClick={() => {
+            setCurrentView('calendar')
+            setShowCalendar(!showCalendar)
+            setShowStats(false)
+            setShowListModal(false)
+            setMobileMenuOpen(false)
+          }}
+        >
+          <div className="nav-icon">📅</div>
+          <div className="nav-label">Calendario</div>
+        </button>
+        <button
+          className={`nav-item ${currentView === 'stats' ? 'active' : ''}`}
+          onClick={() => {
+            setCurrentView('stats')
+            setShowStats(!showStats)
+            setShowCalendar(false)
+            setShowListModal(false)
+            setMobileMenuOpen(false)
+          }}
+        >
+          <div className="nav-icon">📊</div>
+          <div className="nav-label">Estadísticas</div>
+        </button>
+        <button
+          className={`nav-item ${currentView === 'completed' ? 'active' : ''}`}
+          onClick={() => {
+            setCurrentView('completed')
+            showCompletedTasksView()
+            setShowCalendar(false)
+            setShowStats(false)
+            setShowListModal(false)
+            setSelectedDate(null)
+          }}
+        >
+          <div className="nav-icon">✅</div>
+          <div className="nav-label">Completadas</div>
+          {completedTasks.length > 0 && (
+            <span className="nav-badge">{completedTasks.length}</span>
+          )}
+        </button>
+      </nav>
+
       </main>
     </>
   )

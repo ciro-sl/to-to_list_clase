@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Cenit</string>
+    <string name="title_activity_main">Cenit</string>
+    <string name="package_name">com.cenit.tareas</string>
+    <string name="custom_url_scheme">com.cenit.tareas</string>
+</resources>

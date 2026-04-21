@@ -1,0 +1,19 @@
+{
+  "appId": "com.cenit.tareas",
+  "appName": "Cenit",
+  "webDir": "dist",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_launcher",
+      "color": "#3498db",
+      "launchURL": true,
+      "autocancel": true,
+      "ongoing": false,
+      "priority": "high"
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
